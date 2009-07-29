@@ -1,0 +1,5 @@
+- 2x conversion at once
+- Keep folder structure or relative folder structure
+- Pause conversion, don't make errors stop the conversion
+- If decodeonly (Converting to WAV) is set, we don't append .converted properly
+- Fix Lame slowness with time.sleep(0.01) and CPU usage with awk

@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Service
+ServiceTypes=KonqPopupMenu/Plugin,all/all
+X-KDE-Submenu=&audio-convert-mod
+X-KDE-Priority=TopLevel
+Actions=ConvertFiles
+
+[Desktop Action ConvertFiles]
+Name=Convert Files
+Name[de]=Dateien konvertieren
+Name[es]=Convertir archivos
+#Please add more translations here!
+Exec=audio-convert-mod %F

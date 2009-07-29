@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=audio-convert-mod
+GenericName=Audio Converter
+Comment=Convert audio files into various formats
+Exec=audio-convert-mod
+#Icon=audio-convert-mod.svg
+Icon=gtk-convert
+Terminal=false
+Type=Application
+Categories=GTK;AudioVideo;Audio;
+Version=1.0

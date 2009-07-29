@@ -1,0 +1,2 @@
+After configuring audio-convert-mod, simply type "make install" as root to
+install audio-convert-mod on your system. See README for more details.

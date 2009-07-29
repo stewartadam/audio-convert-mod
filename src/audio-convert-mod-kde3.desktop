@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=2.4
+Name=audio-convert-mod
+ServiceTypes=all/all
+Actions=ConvertFiles
+
+[Desktop Action ConvertFiles]
+Name=Convert Files
+Name[de]=Dateien konvertieren
+Name[es]=convertir archivos
+#Please add more translations here!
+Exec=audio-convert-mod %F
+Icon=multimedia

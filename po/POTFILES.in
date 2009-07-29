@@ -1,0 +1,12 @@
+[encoding: UTF-8]
+src/audio-convert-mod.glade
+src/BugReport.glade
+src/acm-runapp.pyw
+src/audio_convert_mod/config.py
+src/audio_convert_mod/formats.py
+src/audio_convert_mod/i18n.py
+src/audio_convert_mod/interface.py
+src/audio_convert_mod/__init__.py
+src/audio_convert_mod/widgets.py
+encode.py.test
+decode.py.test

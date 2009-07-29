@@ -1,0 +1,102 @@
+Name:              audio-convert-mod
+Version:           3.45.5
+Release:           1%{?dist}
+BuildArch:         noarch
+Summary:           A simple audio file converter supporting many formats
+Group:             Applications/Multimedia
+License:           GPLv2+
+URL:               http://www.diffingo.com/content/view/13/47/lang,en/
+Source0:           http://www.diffingo.com/downloads/audio-convert-mod/audio-convert-mod-%{version}.tar.gz
+BuildRoot:         %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+
+BuildRequires:     desktop-file-utils
+BuildRequires:     gettext, intltool, automake, autoconf
+BuildRequires:     python-devel >= 2.4
+Requires:          python >= 2.4
+Requires:          pygtk2, pygtk2-libglade
+Requires:          notify-python
+
+# FOSS encoders, decoders, taggers
+Requires:          flac
+Requires:          id3lib
+Requires:          libmp4v2
+Requires:          vorbis-tools
+Requires:          wavpack
+
+
+%description
+audio-convert-mod is a simple audio file converter supporting various formats
+via external binaries. It facilitates the batch conversion of audio files
+from one format to another at a right-click. Drag-and-drop is also supported.
+File tags/metadata are preserved when possible.
+
+
+%prep
+%setup -q
+
+%build
+%configure
+make
+
+%install
+rm -rf $RPM_BUILD_ROOT
+make install DESTDIR=$RPM_BUILD_ROOT
+
+desktop-file-install --vendor fedora\
+    --dir ${RPM_BUILD_ROOT}%{_datadir}/applications\
+    --delete-original \
+    ${RPM_BUILD_ROOT}%{_datadir}/applications/%{name}.desktop
+
+%find_lang %{name}
+
+%check
+make check
+
+%clean
+rm -rf $RPM_BUILD_ROOT
+
+%files -f %{name}.lang
+%defattr(-,root,root,-)
+%{_bindir}/*
+%{_datadir}/%{name}/
+%{_datadir}/applications/fedora-*.desktop
+
+%doc AUTHORS ChangeLog COPYING NEWS INSTALL README TODO
+
+
+%changelog
+* Mon Jan 12 2009 Stewart Adam <s.adamat diffingo.com> 3.45.5-1
+- Update to 3.45.5 (see ChangeLog for details on version changes)
+- Add BR on autoconf
+- Require libmp4v2 for AAC tagging, id3lib for MP3 tagging and notify-python
+- Add %%check section
+
+* Sun May 11 2008 Stewart Adam <s.adam at diffingo.com> 3.45.4-1
+- Update to 3.45.4 bugfix release
+
+* Fri Apr 25 2008 Stewart Adam <s.adam at diffingo.com> 3.45.3-1
+- Update to 3.45.3 (see CHANGELOG file for details on version changes)
+- Fixes RH#442502
+
+* Sat Jan 19 2008 Stewart Adam <s.adam at diffingo.com> 3.45.2-3
+- Rebuild
+
+* Sat Sep 8 2007 Stewart Adam <s.adam at diffingo.com> 3.45.2-2
+- Fix traceback upon calling --help
+
+* Wed Sep 5 2007 Stewart Adam <s.adam at diffingo.com> 3.45.2-1
+- Update to 3.45.2 (see CHANGELOG file for details on version changes)
+- Fixes RH#277871
+
+* Fri Aug 24 2007 Stewart Adam <s.adam at diffingo.com> 3.45.1-1
+- Update to 3.45.1 (see CHANGELOG file for details on version changes)
+- Remove uninstall script from package
+- Update License tag per guideline changes
+- Use sitelib, not sitearch
+
+* Fri Aug 3 2007 Stewart Adam <s.adam at diffingo.com> 3.45.0-1
+- Update to 3.45.0 (see CHANGELOG file for details on version changes)
+
+* Tue Jul 31 2007 Stewart Adam <s.adam at diffingo.com> 3.45.0-0.1
+- Initial RPM release, 3.45.0 beta
+

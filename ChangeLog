@@ -1,0 +1,112 @@
+|| Version 3.45.6 changes ||
+  * Wed Jul 29 2009 Stewart Adam <s.adam at diffingo.com>
+    - Redo autotools config files so that glib gettext is no longer required
+
+|| Version 3.45.5 changes ||
+    - Suppots drag-and-drop of directories
+    - Add support for KDE4 service menus in Dolphin and Konqueror
+    - Add tag requirements to the Capabilities window
+    - Create WAV files to a temporary directory instead of same folder as original
+    - Add new "Remove Diacritis From Fileames" option
+    - When adding files, filter out unsupported audio files
+    - Use pynotify in place of blinking when possible
+    - Bugfixes:
+      - Call correct path when using a non-default prefix
+      - Fix invalid usage when decoding MP3 files via Lame
+      - Fix encoding to AC3 when output file already exists
+      - When user has skipped a file, don't complain to the user about -9 retval
+      - Detect tags correctly when certain fields are missing
+    - Use internal error & warning dialogs instead of rat.hig
+    - Add config.py for a better configuration file implementation
+    - Update bitrates for OGG, MPC and AAC
+    - Support AAC tags via libmp4v2
+    - Add a test suite / "make check"
+
+|| Version 3.45.4 changes ||
+    - Fix bug when updating the preferences file (rh#442502 pt2)
+    - Fix bug when loading defaults
+
+|| Version 3.45.3 changes ||
+    - Fix a bug where all file operations would fail when the file to convert
+      contained quotes
+    - Semi-Win* support... Coming soon!
+    - Bugfix: The decode and encode fields were reversed in Features
+    - Bugfix: WMA, SHA are NOT decodable for now.
+    - New Chinese (zh_CN) translation (Thanks Harris!)
+    - Move to trash is gone, use custom folder selection instead
+    - Don't default to Output Folder --> Override
+    - Fix OGG tagging (rh#442502)
+
+
+|| Version 3.45.2 changes ||
+    - Bugfix release ( no config directory = crash :/ )
+
+|| Version 3.45.1 changes ||
+    - Preferences / Save defaults
+    - Tray icon
+    - New options:
+      * Output folder
+      * Move originals to trash
+    - Add more error checking
+    
+    || Version 3.45.0 changes ||
+    - Rewrite into python
+    - Write functionality of '.converted' script into main program
+    - Support AC3, Wavpack
+    - Extended tag/metadata functionality
+    - Updated conversion commands (fewer glitches, proper progress)
+
+|| Version 3.44 changes ||
+    - Merged with audio-convert-Mmod (Modified version by Michael Schönitzer):
+      - Made it possible to convert complete directories
+      - Ask for files if none were given as argument
+      - Check for every file, if it is supported
+      - Made it possible to convert to the same filetype
+      - Fixed German translation
+      - Created a graphical installation-script
+    - Improved "Remove .converted from files" script
+    - Created a user uninstall script
+    - No more system install... It was problematic and pretty useless
+    - Support for KDE!
+    - Internationalization!
+    - Many, many bugfixes!
+    - Now checks every file against supported formats
+    - Folder and no folder menus
+
+|| Version 3.43 changes ||
+    - Fixed size of quality windows
+    - Fixed OGG quality selection
+    - Saved as UTF-8 to allow special characters
+    - Fixed cancel functions; Hitting 'Cancel' now actually quits!
+    - Fixed the 28 / 40 KB output file issues when converting from wav files.
+    - Fixed the double-progress bar and the progress bar percentage when dealing with wav files
+    - Fixed percentage when only encoding / decoding was needed
+    - Fixed issues where the progress bar pulsed back and forth between two numbers
+    - Optimized encode/decode functions
+    - Change the two instances of FWaudio-convert-mod in copyright notices to the newer name
+
+|| Version 3.42 changes ||
+    - Added a chk-root function that will make a user root if one is not. (Thanks Jim for the function!)
+    - Fixed many, many bugs in the installation and uninstall scripts
+    - Fixed the name in the GPL headings: It still said audio-convert-mod.
+
+|| Version 3.41 changes ||
+    - Added 'data' file support (mplayer en/decoding)
+    - Combined the Decode and Encode progress dialogs into one, less popup-age
+    - Also combined ALL files into one progress bar, so even less popup-age!
+    - Corrected labels to proper English, French
+    - Script now simply adds '.convered' to a filename when it exists rather than asking to replace or adding .FW-ACMnew
+    - Removed EditMetaTag support, it was not very fucntional or pratical. Can I recommend 'tagtool' as a good tagging application for those missing the function?
+    - FIxed 'systeminstall.sh' and 'userinstall.sh' scripts
+    - Added a 'Remove .converted from files' script that will move any existing file to trash first, then remove the .converted end off files
+    - Changed the script name in the right-click menu to mean something and added the submenu "audio-convert-mod"
+
+|| Version 3.3 changes ||
+    - Modified converting quality to show bitrates, not 1 to 10.
+    - Fixed a few minor bugs
+    - Corrected labels to proper English
+    - Added a 'new filename' dialog
+    - Added EditMetaTag support
+    - Enabled MP3 > MP3 conversions
+    - Added automated install scripts
+

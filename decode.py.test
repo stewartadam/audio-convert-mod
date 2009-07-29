@@ -1,0 +1,57 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+#  Copyright (C) 2009 Stewart Adam
+#  This file is part of audio-convert-mod.
+
+#  audio-convert-mod is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+
+#  audio-convert-mod is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+
+#  You should have received a copy of the GNU General Public License
+#  along with audio-convert-mod; if not, write to the Free Software
+#  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+import os
+import sys
+import tarfile
+
+buildroot = os.path.dirname(os.path.abspath(__file__))
+testroot = os.path.join(buildroot, 'tests')
+srcroot = os.path.join(buildroot, 'src')
+sys.path.insert(0, srcroot)
+
+from audio_convert_mod import formats
+from audio_convert_mod.i18n import _
+
+outfile = os.path.join(testroot, 'test.wav')
+if os.path.exists(outfile):
+  os.remove(outfile)
+
+total = len(formats.FORMATS.keys())-1 # -1 for WAV
+current = 1
+for key in formats.FORMATS.keys():
+  format = formats.FORMATS[key]
+  infile = formats.getNewExt(format.extensions[0], outfile)
+  if key.lower() == 'wav':
+    continue
+  if not format.get()[0] or not os.path.exists(infile): # can't encode
+    print _('%(a)i/%(b)i: Binaries for decoding from %(c)s not present - skipping') % {'a': current, 'b': total, 'c': key}
+    current += 1
+    continue
+  try:
+    sub, command = format.decode(infile, outfile)
+    while sub.poll() == None:
+      sub.stdout.readlines()
+      sub.stderr.readlines()
+    assert(os.path.isfile(outfile))
+    os.remove(outfile)
+  except:
+    print _('%(a)i/%(b)i: Decoding to %(c)s has failed!') % {'a': current, 'b': total, 'c': key}
+    sys.exit(1)
+  print _('%(a)i/%(b)i: Decoding to %(c)s has succeeded.') % {'a': current, 'b': total, 'c': key}
+  current += 1
