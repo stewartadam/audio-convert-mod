@@ -5,11 +5,6 @@ AC_CONFIG_SRCDIR(src/audio_convert_mod/__init__.py.in)
 # Search for Python >= 2.4
 AM_PATH_PYTHON([2.4])
 
-# Dependencies
-PKG_CHECK_MODULES(SHELL, pygtk-2.0 gtk+-2.0)
-
-AC_CONFIG_MACRO_DIR([m4])
-
 # Setup gettext translation
 ALL_LINGUAS="zh_CN"
 GETTEXT_PACKAGE=audio-convert-mod
