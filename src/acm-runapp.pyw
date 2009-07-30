@@ -52,8 +52,6 @@ except:
   sys.exit(1)
 #--
 import audio_convert_mod
-from audio_convert_mod import config
-from audio_convert_mod import formats
 from audio_convert_mod import interface
 from audio_convert_mod import widgets
 
@@ -74,7 +72,7 @@ def reportBug(etype=None, evalue=None, tb=None):
       sys.exit(1)
     if audio_convert_mod.CheckPerms(filename):
       fh = open(filename, 'w')
-      time = datetime.datetime.today().strftime('%I:%M %p on %Y-%m-%d')
+      time = datetime.datetime.today().strftime('%I:%M %p, %Y-%m-%d')
       fh.write(_('audio-convert-mod v%(a)s bug report written saved at %(b)s\n\n' % {'a': audio_convert_mod.__version__, 'b': time}))
       fh.write(tracebackText)
       fh.close()
@@ -88,6 +86,10 @@ def reportBug(etype=None, evalue=None, tb=None):
 
 sys.excepthook = reportBug
 gobject.threads_init()
+# Import these last so that any errors popup in the GUI
+from audio_convert_mod import acmlogger
+from audio_convert_mod import config
+from audio_convert_mod import formats
 
 def usage(error):
   """ Print the application usage """
@@ -95,7 +97,7 @@ def usage(error):
     print _('Invalid usage: %s'  % error)
   print _("""Usage: audio-convert-mod [OPTIONS] File1 [File2 File3 ...]
   Options:
-    -v, --verbose  :  Print debug messages
+    -v, --verbose  :  Enable debug messages
     -h, --help  :  Print this message and exit
 """)
 
@@ -143,11 +145,6 @@ def get_local_path(uri):
 
 class acmApp(interface.Controller):
   """ Main program """
-  
-  def debug(self, message):
-    if self.verbose:
-      print message
-  
   def addToSelectFilesFilesTreeview(self, paths):
     """ Adds a file to the Select Files treeview """
     model = self.ui.main1FilesTreeview.get_model()
@@ -211,12 +208,23 @@ class acmApp(interface.Controller):
   
   def __init__(self, verbose, paths):
     """ Initialize a new instance. """
-    self.verbose = verbose
     interface.Controller.__init__(self, '%s/audio-convert-mod.glade' % INSTALL_DIR, 'main')
-    
+    # clear log for new session
+    logfh = open(LOGLOC, 'w')
+    logfh.write('')
+    logfh.close()
+    # Enable debug messages if verbose was selected
+    if verbose:
+      level = acmlogger.L_DEBUG
+    else:
+      level = acmlogger.L_INFO
+    # create the logger
+    self.logger = acmlogger.getLogger()
+    self.logger.setLevel(level)
+    self.logger.setPrintToo(True)
     try:
       import pynotify
-      pynotify.init('fwbackups')
+      pynotify.init('audio-convert-mod')
       self.PYNOTIFY_AVAIL = True
       self.ui.prefsNotifyInTrayCheck.set_label(_('Display noticiations in the tray area'))
     except:
@@ -363,7 +371,7 @@ class acmApp(interface.Controller):
           else: # a file
             fileList.append('%s' % path )
         else: # file didn't exist
-          self.debug('Skipping non-existant file `%s\'' % path)
+          self.logger.logmsg("DEBUG", _("Will not add non-existant file `%s\'") % path)
       errors = self.addToSelectFilesFilesTreeview(fileList)
       if errors != []:
         self.showError(self.ui.main, _('Could not add all of the requested files'), _('Not all files could be added.'), details='\n'.join(errors))
@@ -564,8 +572,8 @@ class acmApp(interface.Controller):
       try:
         self.trayicon.set_visible(False)
         gtk.main_quit()
-      except RuntimeError, msg:
-        self.debug('gtk.main_quit() RuntimeError: %s' % msg)
+      except RuntimeError, errormesg:
+        self.logger.logmsg("INFO", _('gtk.main_quit() encountered a RuntimeError: %s') % errormesg)
     return False
 
 
@@ -582,16 +590,16 @@ class acmApp(interface.Controller):
     for i in paths+oldLocations:
       if os.path.exists(i) and os.path.isfile(i):
         try:
-          self.debug(_('Removing file from older release: %s.' % i))
+          self.logger.logmsg("INFO", _('Removing file from older release: %s.' % i))
           os.remove(i)
         except Exception, error:
-          self.debug(_('Could not remove file %(a)s: %(b)s') % {'a': i, 'b': error})
+          self.logger.logmsg("WARNING", _('Could not remove file %(a)s: %(b)s') % {'a': i, 'b': error})
       if os.path.exists(i) and os.path.isdir(i):
         try:
-          self.debug(_('Removing directory from older release: %s.' % i))
+          self.logger.logmsg("INFO", _('Removing directory from older release: %s.' % i))
           shutil.rmtree(i)
         except Exception, error:
-          self.debug(_('Could not remove directory %(a)s: %(b)s') % {'a': i, 'b': error})
+          self.logger.logmsg("WARNING", _('Could not remove directory %(a)s: %(b)s') % {'a': i, 'b': error})
     return True
   
   def remove_gnome_filemanager_integration(self):
@@ -615,15 +623,15 @@ class acmApp(interface.Controller):
     # GNOME
     wrapperLocation = formats.which('audio-convert-mod')
     if not wrapperLocation:
-      self.debug(_('Skipping GNOME file manager integration: Could not find audio-convert-mod in $PATH!'))
+      self.logger.logmsg("WARNING", _('Skipping GNOME file manager integration: Could not find audio-convert-mod in $PATH!'))
       return -1
     if os.path.exists('%s/.gnome2/nautilus-scripts/' % USERHOME):
       if not os.path.exists('%s/.gnome2/nautilus-scripts/audio-convert-mod' % USERHOME):
         os.mkdir('%s/.gnome2/nautilus-scripts/audio-convert-mod' % USERHOME, 0755)
       os.symlink(wrapperLocation, '%s/.gnome2/nautilus-scripts/audio-convert-mod/%s' % (USERHOME, _('Convert Files')))
-      self.debug(_('Installed GNOME file manager integration'))
+      self.logger.logmsg("INFO", _('Installed GNOME file manager integration'))
     else:
-      self.debug(_('Skipping GNOME file manager integration: nautilus-scripts directory not found'))
+      self.logger.logmsg("WARNING", _('Skipping GNOME file manager integration: nautilus-scripts directory not found'))
       return -2
     return True
   
@@ -631,14 +639,14 @@ class acmApp(interface.Controller):
     """ Adds integration to Konqueor in KDE3 """
     self.remove_kde3_filemanager_integration()
     if not os.path.exists('%s/audio-convert-mod-kde3.desktop' % INSTALL_DIR):
-      self.debug(_('Skipping KDE file manager integration: KDE desktop file is missing!'))
+      self.logger.logmsg("WARNING", _('Skipping KDE file manager integration: KDE desktop file is missing!'))
       return -1
     if os.path.exists('%s/.kde/share/apps/konqueror/servicemenus/' % USERHOME):
       shutil.copy('%s/audio-convert-mod-kde3.desktop' % INSTALL_DIR,
                   '%s/.kde/share/apps/konqueror/servicemenus/audio-convert-mod-kde.desktop' % USERHOME)
-      self.debug(_('Installed KDE3 file manager integration'))
+      self.logger.logmsg("INFO", _('Installed KDE3 file manager integration'))
     else:
-      self.debug(_('Skipping KDE3 file manager integration: servicemenus directory not found'))
+      self.logger.logmsg("WARNING", _('Skipping KDE3 file manager integration: servicemenus directory not found'))
       return -2
     return True
 
@@ -646,14 +654,14 @@ class acmApp(interface.Controller):
     """ Adds integration to Dolphin and Konqueor in KDE4 """
     self.remove_kde4_filemanager_integration()
     if not os.path.exists('%s/audio-convert-mod-kde4.desktop' % INSTALL_DIR):
-      self.debug(_('Skipping KDE file manager integration: KDE desktop file is missing!'))
+      self.logger.logmsg("WARNING", _('Skipping KDE file manager integration: KDE desktop file is missing!'))
       return -1
     if os.path.exists('%s/.kde/share/kde4/services/ServiceMenus/' % USERHOME):
       shutil.copy('%s/audio-convert-mod-kde4.desktop' % INSTALL_DIR,
                   '%s/.kde/share/kde4/services/ServiceMenus/audio-convert-mod-kde.desktop' % USERHOME)
-      self.debug(_('Installed KDE4 file manager integration'))
+      self.logger.logmsg("INFO", _('Installed KDE4 file manager integration'))
     else:
-      self.debug(_('Skipping KDE4 file manager integration: ServiceMenu directory not found'))
+      self.logger.logmsg("WARNING", _('Skipping KDE4 file manager integration: ServiceMenu directory not found'))
       return -2
     return True
 
@@ -1062,7 +1070,7 @@ class acmApp(interface.Controller):
       if self.fraction == 100 or self.fraction == "":
         self.ui.main3FileProgress.set_fraction(float(1))
         self.ui.main3FileProgress.set_text('100%')
-        self.debug('No longer updating the progressbar')
+        self.logger.logmsg("DEBUG", _("No longer updating the progressbar"))
         return False
       self.ui.main3FileProgress.set_fraction(float(self.fraction))
       self.ui.main3FileProgress.set_text('%i%%' % int(float(self.fraction)*100))
@@ -1093,9 +1101,9 @@ class acmApp(interface.Controller):
                       )
       stderr = sub.stderr.readlines()
       stdout = sub.stdout.readlines()
-      self.debug(stderr)
-      self.debug(stdout)
-      self.debug(command)
+      self.logger.logmsg("DEBUG", _("An unexpected error occurred while running command: %s") % command)
+      self.logger.logmsg("DEBUG", _("stderr: %s") % '\n'.join(stderr))
+      self.logger.logmsg("DEBUG", _("stdout: %s") % '\n'.join(stdout))
 
     def refreshCurrentFile(self, i, currFile, total):
       """ Refreshes labels for the current file """
@@ -1153,14 +1161,14 @@ class acmApp(interface.Controller):
       refreshCurrentFile(self, i, currFile, total)
       
       if inputFormat == outputFormat:
-        self.debug(_('Input format == output format! Skipping %s.' % i))
+        self.logger.logmsg("DEBUG", _('Input format == output format! Skipping %s.' % i))
         currFile = nextFile(currFile)
         continue
       
       #decode
       tags = None
       if outputFormatObject.get()[2] and inputFormatObject.get()[2]: # only if tags are supported on both sides
-        self.debug('get tags')
+        self.logger.logmsg("DEBUG", _("Retrieving tags/metadata"))
         self.setStatus(_('Retrieving tags/metadata'))
         if self.ui.main2MetatagRadio1.get_active():
           tags = inputFormatObject.getTags(i)
@@ -1185,7 +1193,7 @@ class acmApp(interface.Controller):
           comments = self.ui.tagsCommentsTextview.get_buffer().get_text(bounds[0], bounds[1])
           tags = [title, artist, album, year, track, genre, comments]
       if not self.encodeonly:
-        self.debug('decode')
+        self.logger.logmsg("DEBUG", _("Decoding file"))
         self.setStatus(_('Decoding'))
         if self.decodeonly:
           if self.ui.main2ExistsRadio3.get_active(): # wav exists, skips file selected...
@@ -1200,17 +1208,17 @@ class acmApp(interface.Controller):
               wavfile += '.converted'
             elif self.ui.main2ExistsRadio2.get_active(): # overwrite
               try:
-                self.debug('removing existing file %s' % newname)
+                self.logger.logmsg("DEBUG", _("Removing existing file %s") % newname)
                 os.remove(wavfile)
-              except Exception, error:
-                self.debug('couldn\'t remove existing file: %s' % error)
+              except Exception, errormsg:
+                self.logger.logmsg("WARNING", _("Could not remove existing file: %s") % errormsg)
               break
             else: # just incase
               wavfile += '.converted'
         else:
           wavfile = os.path.join(tempdir, 'acm-%s' % os.path.split(formats.getNewExt('wav', i))[1])
         sub, command = inputFormatObject.decode(escapeSingleQuote(i), escapeSingleQuote(wavfile))
-        self.debug(command)
+        self.logger.logmsg("DEBUG", _("Executing command: %s") % command)
         self.processId = sub.pid
         if inputFormat == 'AC3': # a52dec doesn't support progress
           self.fraction = -1
@@ -1245,7 +1253,7 @@ class acmApp(interface.Controller):
 
       #options
       # we can't escape now, otherwise the path.exists will fail when quotes are in the filename
-      self.debug('get options')
+      self.logger.logmsg("DEBUG", _("Retrieving options"))
       self.setStatus(_('Retrieving options'))
       extension = self.ui.main2ExtensionCombobox.get_active_text().strip('.')
       if self.ui.main2OutputFolderRadio1.get_active():
@@ -1266,10 +1274,10 @@ class acmApp(interface.Controller):
               newname += '.mpc'
           elif self.ui.main2ExistsRadio2.get_active() and os.path.exists(newname) and outputFormat != 'WAV': #overwrite
             try:
-              self.debug('removing existing file %s' % newname)
+              self.logger.logmsg("DEBUG", _("Removing existing file %s") % newname)
               os.remove(newname)
-            except Exception, error:
-              self.debug('couldn\'t remove existing file: %s' % error)
+            except Exception, errormsg:
+              self.logger.logmsg("WARNING", _("Could not remove existing file: %s") % errormsg)
             break
           else: # we should NEVER be here, but just incase.
             newname += '.converted'
@@ -1277,12 +1285,11 @@ class acmApp(interface.Controller):
           if self.encodeonly:
             wavfile = i
           #encode
-          self.debug('encode')
-          self.debug('encoding %s to %s @ %s %s' % (wavfile, newname, quality, outputFormat))
+          self.logger.logmsg("DEBUG", _("Encoding %(a)s to %(b)s @ %(c)s %(d)s") % {'a': wavfile, 'b': newname, 'c': quality, 'd': outputFormat})
           self.setStatus(_('Encoding'))
           # escape quotes with escapeSingleQuote(newname)
           sub, command = outputFormatObject.encode(escapeSingleQuote(wavfile), escapeSingleQuote(newname), quality)
-          self.debug(command)
+          self.logger.logmsg("DEBUG", _("Executing command: %s") % command)
           self.processId = sub.pid
           if outputFormat == 'AC3': # ffmpeg doesn't support progress
             self.fraction = -1
@@ -1308,8 +1315,7 @@ class acmApp(interface.Controller):
           if sub.poll() != 0 and sub.poll() != -9:
             badExitValue(sub)
         #tags
-        self.debug('set tags:')
-        self.debug(tags)
+        self.logger.logmsg("DEBUG", _("Setting tags/metadata: %s") % tags)
         self.setStatus(_('Setting tags/metadata'))
         if tags and outputFormatObject.get()[2]: # if tags are supported:
           outputFormatObject.setTags(newname, tags)
@@ -1319,37 +1325,38 @@ class acmApp(interface.Controller):
           if os.path.exists(i):
             if self.ui.main2UponSuccessRadio2.get_active():
               successDest = self.ui.main2SuccessOutputFolderFilechooser.get_current_folder()
-              self.debug('moving original file `%s\' to `%s\'' % (i, successDest))
+              self.logger.logmsg("DEBUG", _("Moving original file `%(a)s\' to `%(b)s\'") % {'a': i, 'b': successDest})
               try:
                 shutil.move(i, successDest)
               except OSError:
-                self.debug('File `%s\' could not be moved! Ignoring.' % i)
+                self.logger.logmsg("DEBUG", _("File `%s\' could not be moved! Ignoring.") % i)
             elif self.ui.main2UponSuccessRadio3.get_active():
               if self.ui.main2ExistsRadio2.get_active():
-                self.debug('skipping removing original file `%s\', it was overwriten!' % i)
+                self.logger.logmsg("DEBUG", _("Skipping removing original file `%s\', it was overwriten!") % i)
               else:
-                self.debug('removing original file `%s\'' % i)
+                self.logger.logmsg("DEBUG", _("Removing original file `%s\'") % i)
                 try:
                   os.remove(i)
                 except OSError:
-                  self.debug('File `%s\' could not be removed! Ignoring.' % i)
+                  self.logger.logmsg("WARNING", _("File `%s\' could not be removed! Ignoring.") % i)
         elif sub.poll() == -9: # file skipped, process killed
           if os.path.exists(newname):
             try:
               os.remove(newname)
             except OSError:
-              self.debug('Converted file `%s\' was skipped, but could not be removed! Ignoring.' % i)
+              self.logger.logmsg("DEBUG", _("Converted file `%s\' was skipped, but could not be removed! Ignoring.") % i)
         else:
-          self.debug('Bad exit status %s on conversion `%s\', skipping (re)move options if any' % (sub.poll(), i))
+          self.logger.logmsg("ERROR", _("Bad exit status %(a)s on conversion `%(b)s\', skipping (re)move options if any") % {'a': sub.poll(), 'b': i})
       
       # setup for next file
+      self.logger.logmsg("DEBUG", _("Cleaning up"))
       self.setStatus(_('Cleanup'))
       if outputFormat != 'WAV' and inputFormat != 'WAV': # if the source or out is wave, don't delete!
-        self.debug('removing wav file `%s\'' % wavfile)
+        self.logger.logmsg("DEBUG", _("Removing wav file `%s\'") % wavfile)
         try:
           os.remove(wavfile)
         except OSError:
-          self.debug('File `%s\' not found! Ignoring.' % wavfile)
+          self.logger.logmsg("WARNING", _("File `%s\' not found! Ignoring.") % wavfile)
       if os.path.exists(newname):
         if outputFormat == 'MPC' and newname.endswith('.mpc.converted.mpc'):
           # because mppenc can't encode to something that doesn't end in .mpc
@@ -1358,7 +1365,7 @@ class acmApp(interface.Controller):
           try:
             os.rename(newname2, newname)
           except OSError:
-            self.debug('Could not move `%s\' to `%s\'! Ignoring.' % (newname2, newname))
+            self.logger.logmsg("DEBUG", _("Could not move `%(a)s\' to `%(b)s\'! Ignoring.") % {'a': newname2, 'b': newname})
       currFile = nextFile(currFile)
       # end of loop
     self.fraction = 100
@@ -1389,7 +1396,7 @@ class acmApp(interface.Controller):
       try:
         os.kill(self.processId, 9)
       except:
-        self.debug('Could not kill process')
+        self.logger.logmsg("DEBUG", _("Could not kill process with PID %s") % self.processId)
     self.processId = -2
 
   def on_main4NewButton_clicked(self, widget):

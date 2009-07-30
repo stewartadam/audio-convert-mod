@@ -2,6 +2,7 @@
 src/audio-convert-mod.glade
 src/BugReport.glade
 src/acm-runapp.pyw
+src/audio_convert_mod/acmlogger.py
 src/audio_convert_mod/config.py
 src/audio_convert_mod/formats.py
 src/audio_convert_mod/i18n.py

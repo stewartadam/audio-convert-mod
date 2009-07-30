@@ -1,4 +1,5 @@
 ACMPYTHON_FILES = \
+    acmlogger.py  \
     const.py      \
     config.py     \
     formats.py    \

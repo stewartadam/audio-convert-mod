@@ -37,6 +37,7 @@ USERHOME = os.path.expanduser('~%s' % USER)
 if USERHOME == '~%s' % USER: # if os doesn't support that format
   USERHOME = os.path.expanduser('~')
 PREFLOC = os.path.normpath('%s/.audio-convert-mod/prefs.conf' % USERHOME)
+LOGLOC = os.path.normpath('%s/.audio-convert-mod/userlog.txt' % USERHOME)
 
 def which(program):
   """ Emulates unix `which` command """
@@ -47,3 +48,5 @@ def which(program):
     if MSWINDOWS and os.path.isfile(programPath+'.exe'):
       return programPath
   return False
+
+
