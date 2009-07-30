@@ -3,6 +3,8 @@
     - Redo autotools config files so that glib gettext is no longer required
     - Fix encode/decode capability detection for testbench
     - Use mutagen for reading and writing audio file tags
+    - Fix a regression that made users unable to browse for folders in the
+      conversion settings
 
 || Version 3.45.5 changes ||
     - Suppots drag-and-drop of directories
