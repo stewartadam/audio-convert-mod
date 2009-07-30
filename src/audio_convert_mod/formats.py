@@ -753,5 +753,5 @@ def decodable(path):
   if fileType == False:
     # unknown filetype!
     return False
-  return fileType.get()[0]
+  return fileType.get()[1]
 

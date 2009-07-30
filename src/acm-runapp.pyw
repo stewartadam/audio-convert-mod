@@ -222,6 +222,7 @@ class acmApp(interface.Controller):
     self.logger = acmlogger.getLogger()
     self.logger.setLevel(level)
     self.logger.setPrintToo(True)
+    self.logger.logmsg("INFO", _("audio-convert-mod version %s initialized") % audio_convert_mod.__version__)
     try:
       import pynotify
       pynotify.init('audio-convert-mod')
@@ -542,14 +543,14 @@ class acmApp(interface.Controller):
               tags, tagsLabel]
     model = self.ui.featuresFeaturesTreeview.get_model()
     model.clear()
-    model.append(convert(formats.FORMATS['mp3'], 'lame', 'lame', 'id3tag, id3info'))
-    model.append(convert(formats.FORMATS['ogg'], 'oggenc', 'oggdec', 'vorbiscomment'))
-    model.append(convert(formats.FORMATS['mpc'], 'mppdec', 'mppenc', _('N/A')))
-    model.append(convert(formats.FORMATS['ape'], 'mac', 'mac', _('N/A')))
-    model.append(convert(formats.FORMATS['aac'], 'faad', 'faac', 'mp4info, mp4tags'))
+    model.append(convert(formats.FORMATS['mp3'], 'lame', 'lame', 'mutagen'))
+    model.append(convert(formats.FORMATS['ogg'], 'oggenc', 'oggdec', 'mutagen'))
+    model.append(convert(formats.FORMATS['mpc'], 'mppdec', 'mppenc', 'mutagen'))
+    model.append(convert(formats.FORMATS['ape'], 'mac', 'mac', 'mutagen'))
+    model.append(convert(formats.FORMATS['aac'], 'faad', 'faac', 'mutagen'))
     model.append(convert(formats.FORMATS['ac3'], 'a52dec', 'ffmpeg', _('N/A')))
-    model.append(convert(formats.FORMATS['flac'], 'flac', 'flac', 'metaflac'))
-    model.append(convert(formats.FORMATS['wv'], 'wavunpak', 'wavpack', _('N/A')))
+    model.append(convert(formats.FORMATS['flac'], 'flac', 'flac', 'mutagen'))
+    model.append(convert(formats.FORMATS['wv'], 'wavunpak', 'wavpack', 'mutagen'))
 
 
   ###
@@ -864,7 +865,7 @@ class acmApp(interface.Controller):
         model = self.ui.main2FormatCombobox.get_model()
         iter = model.get_iter_first()
         format = formats.FORMATS[formatName.lower()]
-        if format.get()[1] == True: # if we can encoding in this format, select it
+        if format.get()[0] == True: # if we can encode to this format, select it
           while iter:
             if model.get_value(iter, 0).lower() == formatName.lower():
               self.ui.main2FormatCombobox.set_active_iter(iter)
@@ -965,7 +966,7 @@ class acmApp(interface.Controller):
     """ Add file(s) """
     ffilterList = []
     for key in formats.FORMATS.keys():
-      if formats.FORMATS[key].get()[0]:
+      if formats.FORMATS[key].get()[1]:
         for extension in formats.FORMATS[key].extensions:
           ffilterList.append('*.%s' % extension.lower())
           ffilterList.append('*.%s' % extension.upper())

@@ -8,6 +8,7 @@
     - Implement a logger similar to that of fwbackups to log a session's
       activity so that bug reporting and the subsequent troubleshooting is
       easier.
+    - Fix several capability detection bugs when adding files to be converted
 
 || Version 3.45.5 changes ||
     - Suppots drag-and-drop of directories
