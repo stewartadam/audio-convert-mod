@@ -8,8 +8,10 @@ config.log
 config.status
 config.sub
 configure
-fwbackups.pc
+audio-convert-mod.pc
 stamp-h1
+install-sh
+missing
 
 # these get generated from .in or .am files
 intltool-extract
@@ -17,14 +19,17 @@ intltool-merge
 intltool-update
 Makefile.in
 Makefile
-fwbackups.spec
+audio-convert-mod.spec
+bin/audio-convert-mod
+src/audio_convert_mod/__init__.py
+
 
 # po
-POTFILES
-missing
-stamp-it
-*.gmo
-*.mo
+po/POTFILES
+po/stamp-it
+po/*.gmo
+po/*.mo
+po/audio-convert-mod.pot
 
 
 # ignore these file types

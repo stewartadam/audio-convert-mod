@@ -1,5 +1,5 @@
 EXTRA_DIST = \
-    audio-convert-mod
+    audio-convert-mod.in
 
 install-data-local:
 	$(mkinstalldirs) $(DESTDIR)$(bindir)
@@ -7,6 +7,3 @@ install-data-local:
 
 uninstall-local:
 	rm -f $(DESTDIR)$(bindir)/audio-convert-mod
-
-clean:
-	rm -f *~

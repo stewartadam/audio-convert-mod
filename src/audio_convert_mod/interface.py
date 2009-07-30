@@ -21,7 +21,7 @@ Common classes for interfacing with Glade files
 
 import gtk
 import gtk.glade
-
+gtk.glade.bindtextdomain("audio-convert-mod")
 # gtk
 # |-- glade
 #     |-- XML

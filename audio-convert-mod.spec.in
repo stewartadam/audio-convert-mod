@@ -1,16 +1,16 @@
 Name:              audio-convert-mod
-Version:           3.45.5
+Version:           @VERSION@
 Release:           1%{?dist}
 BuildArch:         noarch
 Summary:           A simple audio file converter supporting many formats
 Group:             Applications/Multimedia
 License:           GPLv2+
-URL:               http://www.diffingo.com/content/view/13/47/lang,en/
-Source0:           http://www.diffingo.com/downloads/audio-convert-mod/audio-convert-mod-%{version}.tar.gz
+URL:               http://www.diffingo.com/oss/audio-convert-mod
+Source0:           http://downloads.diffingo.com/audio-convert-mod/audio-convert-mod-%{version}.tar.gz
 BuildRoot:         %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:     desktop-file-utils
-BuildRequires:     gettext, intltool, automake, autoconf
+BuildRequires:     intltool
 BuildRequires:     python-devel >= 2.4
 Requires:          python >= 2.4
 Requires:          pygtk2, pygtk2-libglade
@@ -65,6 +65,10 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Wed Jul 29 2009 Stewart Adam <s.adamat diffingo.com> 3.46-1
+- Update to 3.46 (see ChangeLog for details on version changes)
+- Update Source0: and URL: URLs
+
 * Mon Jan 12 2009 Stewart Adam <s.adamat diffingo.com> 3.45.5-1
 - Update to 3.45.5 (see ChangeLog for details on version changes)
 - Add BR on autoconf
