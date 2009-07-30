@@ -11,7 +11,6 @@ EXTRA_DIST = \
     intltool-merge.in \
     intltool-update.in \
     audio-convert-mod.spec.in \
-    audio-convert-mod.spec \
     AUTHORS \
     ChangeLog \
     COPYING \
@@ -35,7 +34,7 @@ TESTS = \
     encode.py.test \
     decode.py.test
 
-distclean-local:
+clean-local:
 	rm -rf $(testsubdir)/*
 
 rpm: dist
