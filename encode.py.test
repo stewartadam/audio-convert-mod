@@ -35,7 +35,11 @@ tarball.close()
 
 infile = os.path.join(testroot, 'test.wav')
 
-tags = ['title', 'artist', 'album', '2000', '1', '0', 'comments']
+tags = ['title', 'artist', 'album', '2000', '1', 'genre', 'comments']
+# Exception for AAC with tuple as track num
+tags_aac = ['title', 'artist', 'album', '2000', '(1, 0)', 'genre', 'comments']
+# Exception for MP3 with no comments
+tags_mp3 = ['title', 'artist', 'album', '2000', '1', 'genre', '']
 
 total = len(formats.FORMATS.keys())-1 # -1 for WAV
 current = 1
@@ -43,7 +47,7 @@ for key in formats.FORMATS.keys():
   format = formats.FORMATS[key]
   if key.lower() == 'wav':
     continue
-  if not format.get()[1]: # can't encode
+  if not format.get()[0]: # can't encode
     print _('%(a)i/%(b)i: Binaries for encoding to %(c)s not present - skipping') % {'a': current, 'b': total, 'c': key}
     current += 1
     continue
@@ -60,13 +64,16 @@ for key in formats.FORMATS.keys():
   except:
     print _('%(a)i/%(b)i: Encoding to %(c)s has failed!') % {'a': current, 'b': total, 'c': key}
     sys.exit(1)
+  print _('%(a)i/%(b)i: Encoding to %(c)s has succeeded.') % {'a': current, 'b': total, 'c': key}
+  if not format.get()[2]: # can't read or set tags
+    current += 1
+    continue
   try:
     format.setTags(outfile, tags)
     time.sleep(0.1)
-    assert(format.getTags(outfile) in [tags, None])
+    assert(format.getTags(outfile) in [tags, None, tags_aac, tags_mp3])
   except:
     print _('%(a)i/%(b)i: Tagging metadata on %(c)s has failed!') % {'a': current, 'b': total, 'c': key}
     print format.getTags(outfile), tags
     sys.exit(1)
-  print _('%(a)i/%(b)i: Encoding to %(c)s has succeeded.') % {'a': current, 'b': total, 'c': key}
   current += 1

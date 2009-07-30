@@ -39,16 +39,52 @@ import subprocess
 from audio_convert_mod.i18n import _
 from audio_convert_mod.const import *
 
+import mutagen
+from mutagen.easyid3 import EasyID3
+from mutagen.mp3 import MP3
+from mutagen.flac import FLAC
+from mutagen.oggvorbis import OggVorbis
+from mutagen.musepack import Musepack
+from mutagen.apev2 import APEv2
+from mutagen.mp4 import MP4
+from mutagen.wavpack import WavPack
+
 environ = {'PATH': str(os.getenv('PATH'))}
 
 def getNewExt(ext, filename):
     return '%s.%s' % ('.'.join(filename.split('.')[:-1]), ext)
 
-""" Check if the required programs exist """
+def getTrackInfo(audiotags):
+  """Gets track information from the generic "tags" mutagen object"""
+  tags = []
+  for item in ["title", "artist", "album", "date", "tracknumber", "genre", "comment"]:
+    try:
+      if not audiotags.has_key(item):
+        tags.append("")
+      else:
+        if type(audiotags[item]) == list: # dealing with a list - use first value
+          tags.append(str(audiotags[item][0]))
+        else: # strings
+          tags.append(str(audiotags[item]))
+    except Exception, error:
+      tags.append("")
+  return tags
+
+def saveTrackInfo(audiotags, tags):
+  """Save the track information defined in tags to mutagen object audiotags"""
+  audiotags["title"] = tags[0]
+  audiotags["artist"] = tags[1]
+  audiotags["album"] = tags[2]
+  audiotags["date"] = tags[3]
+  audiotags["tracknumber"] = tags[4]
+  audiotags["genre"] = tags[5]
+  audiotags["comment"] = tags[6]
+  audiotags.save()
+
 class wav:
-  """ ?wav >> ?wav  """
+  """The WAV format class."""
   def __init__(self):
-    """ Initialize """
+    """Initialize"""
     self.__encode = True
     self.__decode = True
     self.__tags = False
@@ -59,8 +95,8 @@ class wav:
                        ]
 
   def check(self):
-    """ Check if the required program(s) exist """
-    pass
+    """Check if the required program(s) exist"""
+    return True
 
   def decode(self, filename, newname):
     command = "echo .5"
@@ -73,16 +109,16 @@ class wav:
     return sub, command
 
   def get(self):
-    """ Return all information on the format """
+    """Return all information on the format"""
     return [self.__encode, self.__decode, self.__tags, self.__qualities]
 
 # -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
 
 class mp3:
-  """ Lame >> MP3 """
+  """The MP3 format class. Requires lame."""
   def __init__(self):
-    """ Initialize """
+    """Initialize"""
     self.__encode = False
     self.__decode = False
     self.__tags = False
@@ -99,22 +135,20 @@ class mp3:
                        ]
 
   def check(self):
-    """ Check if the required program(s) exist """
+    """Check if the required program(s) exist"""
     if which('lame'):
       self.__encode, self.__decode = True, True
     else:
       self.__encode, self.__decode = False, False
-    if which('id3info') and which('id3tag'):
-      self.__tags = True
-    else:
-      self.__tags = False
+    # mutagen supports ID3 tags
+    self.__tags = True
 
   def get(self):
-    """ Return all information on the format """
+    """Return all information on the format"""
     return [self.__encode, self.__decode, self.__tags, self.__qualities]
 
   def decode(self, filename, newname):
-    """ Decodes a MP3 file """
+    """Decodes a MP3 file"""
     if MSWINDOWS:
       command = 'lame.exe --decode --mp3input "%(a)s" "%(b)s" 2>&1 | awk.exe -vRS="\\r" -F"[ /]+" "(NR>2){print $2/$3;fflush();}"' % {'a': filename, 'b': newname}
     else:
@@ -123,7 +157,7 @@ class mp3:
     return sub, command
 
   def encode(self, filename, newname, quality):
-    """ Encodes a new MP3 file """
+    """Encodes a new MP3 file"""
     if MSWINDOWS:
       command = 'lame.exe -m auto --preset cbr %(a)i "%(b)s" "%(c)s" 2>&1 | awk.exe -vRS="\\r" "(NR>3){gsub(/[()%%|]/,\\" \\");if($1 != \\"\\") print $2/100;fflush();}"' % {'a': quality, 'b': filename, 'c': newname}
     else:
@@ -132,45 +166,41 @@ class mp3:
     return sub, command
 
   def getTags(self, filename):
-    """ Retrieves the metadata from filename """
-    if MSWINDOWS:
-      return None
-    command = "id3info '%(a)s'" % {'a': filename}
-    sub = subprocess.Popen(command, shell=True, env=environ, stderr=subprocess.PIPE, stdout=subprocess.PIPE, stdin=subprocess.PIPE)
-    sub.wait()
-    content = sub.stdout.read().split('\n')
-    tags = []
-    for prefix in ['TIT2', 'TPE1', 'TALB', 'TYER', 'TRCK',
-                   'TCON', 'COMM']:
-      tag = ''
-      for line in content:
-        if line.strip().startswith('=== %s' % prefix):
-          content.remove(line)
-          tag = ': '.join(line.strip().split(': ')[1:])
-          if prefix == 'TCON':
-            tag = tag[1:-1]
-          if prefix == 'COMM' and tag.startswith('()[XXX]'):
-            tag = ': '.join(tag.strip().split(': ')[1:])
-          break
-      # we append what was found, or blank then move on to next prefix
-      tags.append(tag)
-    return tags
+    """Retrieves the metadata from filename"""
+    # FIXME: Comments in MP3 are not supported by EasyID3
+    audiotags = MP3(filename, ID3=EasyID3)
+    try: # try to add a tag header
+      audiotags.add_tags(ID3=EasyID3)
+      audiotags['title'] = '' # save one empty tag to create a header
+      audiotags.save()
+    except mutagen.id3.error: # header exists
+      pass
+    return getTrackInfo(audiotags)
 
   def setTags(self, filename, tags):
-    """ Sets the metadata on filename """
-    if MSWINDOWS:
-      return
-    command = "id3tag '%(a)s' --song='%(b)s' --artist='%(c)s' --album='%(d)s' --year='%(e)s' --track='%(f)s' --genre='%(g)s' --comment='%(h)s' " % {'a': filename, 'b': tags[0], 'c': tags[1], 'd': tags[2], 'e': tags[3], 'f': tags[4], 'g': tags[5], 'h': tags[6]}
-    sub = subprocess.Popen(command, shell=True, env=environ, stderr=subprocess.PIPE, stdout=subprocess.PIPE, stdin=subprocess.PIPE)
-    sub.wait()
+    """Sets the metadata on filename"""
+    audiotags = MP3(filename, ID3=EasyID3)
+    try: # try to add a tag header
+      audiotags.add_tags(ID3=EasyID3)
+      audiotags['title'] = '' # save one empty tag to create a header
+      audiotags.save()
+    except mutagen.id3.error: # header exists
+      pass
+    audiotags["title"] = tags[0]
+    audiotags["artist"] = tags[1]
+    audiotags["album"] = tags[2]
+    audiotags["date"] = tags[3]
+    audiotags["tracknumber"] = tags[4]
+    audiotags["genre"] = tags[5]
+    audiotags.save(v1=2) # save both id3v1 and 2 tags
 
 # -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
 
 class flac:
-  """ flac >> flac """
+  """The FLAC format class. Requires flac."""
   def __init__(self):
-    """ Initialize """
+    """Initialize"""
     self.__encode = False
     self.__decode = False
     self.__tags = False
@@ -185,43 +215,30 @@ class flac:
                        ]
 
   def check(self):
-    """ Check if the required program(s) exist """
+    """Check if the required program(s) exist"""
     if which('flac'):
       self.__encode, self.__decode = True, True
     else:
       self.__encode, self.__decode = False, False
-    if which('metaflac'):
-      self.__tags = True
-    else:
-      self.__tags = False
+    # mutagen supports vorbis/flac tags
+    self.__tags = True
 
   def get(self):
-    """ Return all information on the format """
+    """Return all information on the format"""
     return [self.__encode, self.__decode, self.__tags, self.__qualities]
     
   def getTags(self, filename):
-    """ Retrieves the metadata from filename """
-    if MSWINDOWS:
-      return None
-    tags = []
-    command = "metaflac --no-filename '%(a)s' --show-tag=title --show-tag=artist --show-tag=album --show-tag=date --show-tag=tracknumber --show-tag=genre --show-tag=description" % {'a': filename}
-    sub = subprocess.Popen(command, shell=True, env=environ, stderr=subprocess.PIPE, stdout=subprocess.PIPE, stdin=subprocess.PIPE)
-    sub.wait()
-    content = sub.stdout.read().split('\n')[:-1]
-    for tag in content:
-      tags.append('='.join(tag.split('=')[1:]))
-    return tags
+    """Retrieves the metadata from filename"""
+    audiotags = FLAC(filename)
+    return getTrackInfo(audiotags)
 
   def setTags(self, filename, tags):
-    """ Sets the metadata on filename """
-    if MSWINDOWS:
-      return
-    command = "metaflac --remove-all-tags '%(a)s' --set-tag title='%(b)s' --set-tag artist='%(c)s' --set-tag album='%(d)s' --set-tag date='%(e)s' --set-tag tracknumber='%(f)s' --set-tag genre='%(g)s' --set-tag description='%(h)s'" % {'a': filename, 'b': tags[0], 'c': tags[1], 'd': tags[2], 'e': tags[3], 'f': tags[4], 'g': tags[5], 'h': tags[6]}
-    sub = subprocess.Popen(command, shell=True, env=environ, stderr=subprocess.PIPE, stdout=subprocess.PIPE, stdin=subprocess.PIPE)
-    sub.wait()
+    """Sets the metadata on filename"""
+    audiotags = FLAC(filename)
+    saveTrackInfo(audiotags, tags)
     
   def decode(self, filename, newname):
-    """ Decodes a FLAC file """
+    """Decodes a FLAC file"""
     if MSWINDOWS:
       command = 'flac.exe -d -f "%(a)s" -o "%(b)s" 2>&1 | awk.exe -vRS="\\r" -F":" "!/done/{gsub(/ /,\\"\\");gsub(/%% complete/,\\"\\");;gsub(/%%complete/,\\"\\");if(NR>1) print $2/100;fflush();}"' % {'a': filename, 'b': newname}
     else:
@@ -230,7 +247,7 @@ class flac:
     return sub, command
 
   def encode(self, filename, newname, quality):
-    """ Encodes a new FLAC file """
+    """Encodes a new FLAC file"""
     if MSWINDOWS:
       command = 'flac.exe -f --compression-level-%(a)i "%(b)s" -o "%(c)s" 2>&1 | awk.exe -vRS="\\r" -F":" "!/wrote/{gsub(/ /,\\"\\");if(NR>1)print $2/100;fflush();}" | awk.exe -F"%%" "{printf $1\\"\\n\\";fflush();}"' % {'a': quality, 'b': filename, 'c': newname}
     else:
@@ -242,9 +259,9 @@ class flac:
 # -----------------------------------------------------------------------------
 
 class ogg:
-  """ oggenc >> OGG (vorbis-tools) """
+  """The OGG format class. Requires ogg{enc,dec,info} (vorbis-tools)"""
   def __init__(self):
-    """ Initialize """
+    """Initialize"""
     self.__encode = False
     self.__decode = False
     self.__tags = False
@@ -261,7 +278,7 @@ class ogg:
                        ]
 
   def check(self):
-    """ Check if the required program(s) exist """
+    """Check if the required program(s) exist"""
     if which('oggdec'):
       self.__decode = True
     else:
@@ -270,46 +287,25 @@ class ogg:
       self.__encode = True
     else:
       self.__encode = False
-    if which('ogginfo') and which('vorbiscomment'):
-      self.__tags = True
-    else:
-      self.__tags = False
+    # mutagen supports vorbis/flac tags
+    self.__tags = True
 
   def get(self):
-    """ Return all information on the format """
+    """Return all information on the format"""
     return [self.__encode, self.__decode, self.__tags, self.__qualities]
 
   def getTags(self, filename):
-    """ Retrieves the metadata from filename """
-    if MSWINDOWS:
-      return None
-    command = "ogginfo '%(a)s'" % {'a': filename}
-    sub = subprocess.Popen(command, shell=True, env=environ, stderr=subprocess.PIPE, stdout=subprocess.PIPE, stdin=subprocess.PIPE)
-    sub.wait()
-    content = sub.stdout.read().split('\n')
-    tags = []
-    for prefix in ['TITLE=', 'ARTIST=', 'ALBUM=', 'DATE=', 'TRACKNUMBER=',
-                   'GENRE=', 'DESCRIPTION=']:
-      tag = ''
-      for line in content:
-        if line.strip().startswith(prefix):
-          content.remove(line)
-          tag = line.strip()[len(prefix):]
-          break
-      # we append what was found, or blank then move on to next prefix
-      tags.append(tag)
-    return tags
+    """Retrieves the metadata from filename"""
+    audiotags = OggVorbis(filename)
+    return getTrackInfo(audiotags)
     
   def setTags(self, filename, tags):
-    """ Sets the metadata on filename """
-    if MSWINDOWS:
-      return
-    command = "vorbiscomment -w '%(a)s' -t 'TITLE=%(b)s' -t 'ARTIST=%(c)s' -t 'ALBUM=%(d)s' -t 'DATE=%(e)s' -t 'TRACKNUMBER=%(f)s' -t 'GENRE=%(g)s' -t 'DESCRIPTION=%(h)s'" % {'a': filename, 'b': tags[0], 'c': tags[1], 'd': tags[2], 'e': tags[3], 'f': tags[4], 'g': tags[5], 'h': tags[6]}
-    sub = subprocess.Popen(command, shell=True, env=environ, stderr=subprocess.PIPE, stdout=subprocess.PIPE, stdin=subprocess.PIPE)
-    sub.wait()
+    """Sets the metadata on filename"""
+    audiotags = OggVorbis(filename)
+    saveTrackInfo(audiotags, tags)
     
   def decode(self, filename, newname):
-    """ Decodes a OGG file """
+    """Decodes a OGG file"""
     if MSWINDOWS:
       command = 'oggdec.exe "%(a)s" -o "%(b)s" 2>&1 | awk.exe -vRS="\\r" "(NR>1){gsub(/%%/,\\" \\");print $2/100;fflush();}"' % {'a': filename, 'b': newname}
     else:
@@ -318,7 +314,7 @@ class ogg:
     return sub, command
 
   def encode(self, filename, newname, quality):
-    """ Encodes a new OGG file """
+    """Encodes a new OGG file"""
     if MSWINDOWS:
       command = 'oggenc.exe -b %(a)i "%(b)s" -o "%(c)s" 2>&1 | awk.exe -vRS="\\r" "(NR>1){gsub(/%%/,\\" \\");print $2/100;fflush();}"' % {'a': quality, 'b': filename, 'c': newname}
     else:
@@ -330,9 +326,9 @@ class ogg:
 # -----------------------------------------------------------------------------
 
 class mpc:
-  """ mppdec >> MPC (musepack-tools) """
+  """The MPC format class. Requires mpp{dec,enc} (musepack-tools)"""
   def __init__(self):
-    """ Initialize """
+    """Initialize"""
     self.__encode = False
     self.__decode = False
     self.__tags = False
@@ -352,7 +348,7 @@ class mpc:
                       ]
 
   def check(self):
-    """ Check if the required program(s) exist """
+    """Check if the required program(s) exist"""
     if which('mppdec'):
       self.__decode = True
     else:
@@ -361,24 +357,25 @@ class mpc:
       self.__encode = True
     else:
       self.__encode = False
-    self.__tags = False
+    # mutagen supports Musepack tags
+    self.__tags = True
 
   def get(self):
-    """ Return all information on the format """
+    """Return all information on the format"""
     return [self.__encode, self.__decode, self.__tags, self.__qualities]
 
   def getTags(self, filename):
-    """ Retrieves the metadata from filename """
-    return None
+    """Retrieves the metadata from filename"""
+    audiotags = Musepack(filename)
+    return getTrackInfo(audiotags)
     
   def setTags(self, filename, tags):
-    """ Sets the metadata on filename """
-    if MSWINDOWS:
-      return
-    return
+    """Sets the metadata on filename"""
+    audiotags = Musepack(filename)
+    saveTrackInfo(audiotags, tags)
 
   def decode(self, filename, newname):
-    """ Decodes a MPC file """
+    """Decodes a MPC file"""
     if MSWINDOWS:
       command = 'mppdec.exe "%(a)s" "%(b)s" 2>&1 | awk.exe -vRS="\\r" -F"[ (]+" "!/s/{gsub(/(%%)/,\\" \\");if(NR>5)print $5/100;fflush();}"' % {'a': filename, 'b': newname}
     else:
@@ -387,7 +384,7 @@ class mpc:
     return sub, command
 
   def encode(self, filename, newname, quality):
-    """ Encodes a new MPC file """
+    """Encodes a new MPC file"""
     if MSWINDOWS:
       command = 'mppenc.exe --quality %(a)i --overwrite "%(b)s" "%(c)s" 2>&1 | awk.exe -vRS="\\r" "!/^$/{if (NR>5) print $1/100;fflush();}"' % {'a': quality, 'b': filename, 'c': newname}
     else:
@@ -400,9 +397,9 @@ class mpc:
 # -----------------------------------------------------------------------------
 
 class ape:
-  """ mac >> ape """
+  """The Monkey's Audio format class. Requires mac."""
   def __init__(self):
-    """ Initialize """
+    """Initialize"""
     self.__encode = False
     self.__decode = False
     self.__tags = False
@@ -417,29 +414,30 @@ class ape:
                        ]
 
   def check(self):
-    """ Check if the required program(s) exist """
+    """Check if the required program(s) exist"""
     if which('mac'):
       self.__decode, self.__encode = True, True
     else:
       self.__decode, self.__encode = False, False
-    self.__tags = False
+    # mutagen supports apev2 tags
+    self.__tags = True
 
   def get(self):
-    """ Return all information on the format """
+    """Return all information on the format"""
     return [self.__encode, self.__decode, self.__tags, self.__qualities]
 
   def getTags(self, filename):
-    """ Retrieves the metadata from filename """
-    return None
+    """Retrieves the metadata from filename"""
+    audiotags = APEv2(filename)
+    return getTrackInfo(audiotags)
     
   def setTags(self, filename, tags):
-    """ Sets the metadata on filename """
-    if MSWINDOWS:
-      return
-    return
+    """Sets the metadata on filename"""
+    audiotags = APEv2(filename)
+    saveTrackInfo(audiotags, tags)
 
   def decode(self, filename, newname):
-    """ Decodes a MAC file """
+    """Decodes a MAC file"""
     if MSWINDOWS:
       command = 'mac.exe "%(a)s" "%(b)s" -d 2>&1 | awk.exe -vRS="\\r" "(NR>1){gsub(/%%/,\\" \\");print $2/100;fflush();}"' % {'a': filename, 'b': newname}
     else:
@@ -448,7 +446,7 @@ class ape:
     return sub, command
 
   def encode(self, filename, newname, quality):
-    """ Encodes a new MAC file """
+    """Encodes a new MAC file"""
     if MSWINDOWS:
       command = 'mac.exe "%(b)s" "%(c)s" -c%(a)i 2>&1 | awk.exe -vRS="\\r" "(NR>1){gsub(/%%/,\\" \\");print $2/100;fflush();}"' % {'a': quality, 'b': filename, 'c': newname}
     else:
@@ -460,9 +458,9 @@ class ape:
 # -----------------------------------------------------------------------------
 
 class aac:
-  """ faad >> AAC """
+  """The AAC format class. Requires faad, faac."""
   def __init__(self):
-    """ Initialize """
+    """Initialize"""
     self.__encode = False
     self.__decode = False
     self.__tags = False
@@ -478,7 +476,7 @@ class aac:
                       ]
 
   def check(self):
-    """ Check if the required program(s) exist """
+    """Check if the required program(s) exist"""
     if which('faad'):
       self.__decode = True
     else:
@@ -487,48 +485,47 @@ class aac:
       self.__encode = True
     else:
       self.__encode = False
-    if which('mp4info') and which('mp4tags'):
-      self.__tags = True
-    else:
-      self.__tags = False
+    # mutagen supports aac/m4a tags
+    self.__tags = True
 
   def get(self):
-    """ Return all information on the format """
+    """Return all information on the format"""
     return [self.__encode, self.__decode, self.__tags, self.__qualities]
 
   def getTags(self, filename):
-    """ Retrieves the metadata from filename """
-    sub = subprocess.Popen('mp4info "%(a)s"' % {'a': filename}, shell=True, env=environ, stderr=subprocess.PIPE, stdout=subprocess.PIPE, stdin=subprocess.PIPE)
-    sub.wait()
-    content = sub.stdout.read().split('\n')
+    """Retrieves the metadata from filename"""
+    audiotags = MP4(filename)
+    # Map our the iTunes MP4 atom names to our regular tag data.
     tags = []
-    for prefix in ['Metadata Name: ', 'Metadata Artist: ', 'Metadata Album: ',
-              'Metadata Year: ', 'Metadata track: ', 'Metadata Genre: ',
-              'Metadata Comment: ']:
-      tag = ''
-      for line in content:
-        if line.strip().startswith(prefix):
-          content.remove(line)
-          tag = line.strip()[len(prefix):]
-          if prefix == 'Metadata Year: ':
-            tag = tag[:4]
-          elif prefix == 'Metadata track: ':
-            tag = tag.split('of')[0].strip()
-          break
-      # we append what was found, or blank then move on to next prefix
-      tags.append(tag)
+    for item in ["\xa9nam", "\xa9ART", "\xa9alb", "\xa9day", "trkn", "\xa9gen", "\xa9cmt"]:
+      if not audiotags.has_key(item):
+        tags.append("")
+      else:
+        if type(audiotags[item]) == list: # dealing with a list - use first value
+          tags.append(str(audiotags[item][0]))
+        else: # strings
+          tags.append(str(audiotags[item]))
     return tags
     
   def setTags(self, filename, tags):
-    """ Sets the metadata on filename """
-    if MSWINDOWS:
-      return
-    command = "mp4tags -s '%(a)s' -a '%(b)s' -A '%(c)s' -y '%(d)s' -t '%(e)s' -g '%(f)s' -c '%(g)s' '%(h)s'" % {'a': tags[0], 'b': tags[1], 'c': tags[2], 'd': tags[3], 'e': tags[4], 'f': tags[5], 'g': tags[6], 'h': filename}
-    sub = subprocess.Popen(command, shell=True, env=environ, stderr=subprocess.PIPE, stdout=subprocess.PIPE, stdin=subprocess.PIPE)
-    sub.wait()
+    """Sets the metadata on filename"""
+    audiotags = MP4(filename)
+    # Map our regular tag data to the iTunes MP4 atom names.
+    audiotags["\xa9nam"] = tags[0]
+    audiotags["\xa9ART"] = tags[1]
+    audiotags["\xa9alb"] = tags[2]
+    audiotags["\xa9day"] = tags[3]
+    # MP4 requires a tuple here - (track#,#tracks)
+    if type(tags[4]) == list and len(tags[4]) == 2:
+      audiotags["trkn"] = [tags[4]]
+    else:
+      audiotags["trkn"] = [(int(tags[4]), 0)]
+    audiotags["\xa9gen"] = tags[5]
+    audiotags["\xa9cmt"] = tags[6]
+    audiotags.save()
 
   def decode(self, filename, newname):
-    """ Decodes a AAC file """
+    """Decodes a AAC file"""
     if MSWINDOWS:
       command = 'faad.exe "%(a)s" -o "%(b)s" 2>&1 | awk.exe -vRS="\\r" "(NR>1){gsub(/%%/,\\" \\");print $1/100;fflush();}"' % {'a': filename, 'b': newname}
     else:
@@ -537,7 +534,7 @@ class aac:
     return sub, command
 
   def encode(self, filename, newname, quality):
-    """ Encodes a new AAC file """
+    """Encodes a new AAC file"""
     if MSWINDOWS:
       command = 'faac.exe -w -q %(a)i "%(b)s" -o "%(c)s" 2>&1 | awk.exe -vRS="\\r" "(NR>1){gsub(/%%/,\\" \\");print $3/100;fflush();}"' % {'a': quality, 'b': filename, 'c': newname}
     else:
@@ -549,9 +546,9 @@ class aac:
 # -----------------------------------------------------------------------------
 
 class mplayer:
-  """ mplayer >> WMA, SHN """
+  """MPlayer format class for some misc. mplayer-compatible filetypes"""
   def __init__(self):
-    """ Initialize """
+    """Initialize"""
     self.__encode = False
     self.__decode = False
     self.__tags = False
@@ -562,7 +559,7 @@ class mplayer:
                        ]
 
   def check(self):
-    """ Check if the required program(s) exist """
+    """Check if the required program(s) exist"""
     if which('mplayer'):
       self.__decode = True
     else:
@@ -570,22 +567,20 @@ class mplayer:
     self.__tags = False
 
   def get(self):
-    """ Return all information on the format """
+    """Return all information on the format"""
     return [self.__encode, self.__decode, self.__tags, self.__qualities]
 
   def getTags(self, filename):
-    """ Retrieves the metadata from filename """
+    """Retrieves the metadata from filename"""
     return None
     
   def setTags(self, filename, tags):
-    """ Sets the metadata on filename """
-    if MSWINDOWS:
-      return
+    """Sets the metadata on filename"""
     return
   
   # FIXME: Finish this
   def decode(self, filename, newname):
-    """ Decodes a mplayer-playable file """
+    """Decodes a mplayer-playable file"""
     if MSWINDOWS:
       command = 'mplayer.exe -quiet -vo null -vc dummy -ao pcm:waveheader:file="%(b)s" "%(a)s" 2>&1 | awk.exe -vRS="\\r" "($2~/^[-+]?[0-9]/ && $5~/^[-+]?[0-9]/){print $2/$5*100;fflush();}"' % {'a': filename, 'b': newname}
     else:
@@ -597,9 +592,9 @@ class mplayer:
 # -----------------------------------------------------------------------------
 
 class ac3:
-  """ a52dec >> AC3 """
+  """a52dec >> AC3"""
   def __init__(self):
-    """ Initialize """
+    """Initialize"""
     self.__encode = False
     self.__decode = False
     self.__tags = False
@@ -616,7 +611,7 @@ class ac3:
                        ]
 
   def check(self):
-    """ Check if the required program(s) exist """
+    """Check if the required program(s) exist"""
     if which('a52dec'):
       self.__decode = True
     else:
@@ -628,21 +623,21 @@ class ac3:
     self.__tags = False
 
   def get(self):
-    """ Return all information on the format """
+    """Return all information on the format"""
     return [self.__encode, self.__decode, self.__tags, self.__qualities]
 
   def getTags(self, filename):
-    """ Retrieves the metadata from filename """
+    """Retrieves the metadata from filename"""
     return None
     
   def setTags(self, filename, tags):
-    """ Sets the metadata on filename """
+    """Sets the metadata on filename"""
     if MSWINDOWS:
       return
     return
 
   def decode(self, filename, newname):
-    """ Decodes a AC3 file """
+    """Decodes a AC3 file"""
     if MSWINDOWS:
       command = 'echo 0;a52dec.exe -o wav "%(a)s" > "%(b)s"' % {'a': filename, 'b': newname}
     else:
@@ -651,7 +646,7 @@ class ac3:
     return sub, command
 
   def encode(self, filename, newname, quality):
-    """ Encodes a new AC3 file """
+    """Encodes a new AC3 file"""
     if MSWINDOWS:
       command = 'echo 0;ffmpeg.exe -i "%(b)s" -y -ab %(a)ik -f ac3 "%(c)s" 2>&1 | awk.exe -vRS="\10\10\10\10\10\10" "(NR>1){gsub(/%%/,\\" \\");if($1 != \\"\\") print $1;fflush();}"' % {'a': quality, 'b': filename, 'c': newname}
     else:
@@ -664,9 +659,9 @@ class ac3:
 # -----------------------------------------------------------------------------
 
 class wv:
-  """ wavpack >> WVPK """
+  """The wavpack format class. Requires wvunpack, wavpack (wavpack)"""
   def __init__(self):
-    """ Initialize """
+    """Initialize"""
     self.__encode = False
     self.__decode = False
     self.__tags = False
@@ -679,7 +674,7 @@ class wv:
                        ]
 
   def check(self):
-    """ Check if the required program(s) exist """
+    """Check if the required program(s) exist"""
     if which('wvunpack'):
       self.__decode = True
     else:
@@ -688,25 +683,26 @@ class wv:
       self.__encode = True
     else:
       self.__encode = False
-    self.__tags = False
+    # mutagen supports wavpack tags
+    self.__tags = True
 
   def get(self):
-    """ Return all information on the format """
+    """Return all information on the format"""
     return [self.__encode, self.__decode, self.__tags, self.__qualities]
 
   def getTags(self, filename):
-    """ Retrieves the metadata from filename """
-    return None
+    """Retrieves the metadata from filename"""
+    audiotags = WavPack(filename)
+    return getTrackInfo(audiotags)
     
   def setTags(self, filename, tags):
-    """ Sets the metadata on filename """
-    if MSWINDOWS:
-      return
-    return
+    """Sets the metadata on filename"""
+    audiotags = WavPack(filename)
+    saveTrackInfo(audiotags, tags)
 
   # -c || -i for lossless||lossy.... I smell workarounds :/
   def decode(self, filename, newname):
-    """ Decodes a WVPk file """
+    """Decodes a WVPk file"""
     if MSWINDOWS:
       command = 'wvunpack.exe -y "%(a)s" -o "%(b)s" 2>&1 | awk.exe -vRS="\10\10\10\10\10\10" "(NR>1){gsub(/%%/,\\" \\");if($1 != \\"\\") print $1/100;fflush();}"' % {'a': filename, 'b': newname}
     else:
@@ -715,7 +711,7 @@ class wv:
     return sub, command
 
   def encode(self, filename, newname, quality):
-    """ Encodes a new WVPK file """
+    """Encodes a new WVPK file"""
     if quality == 0:
       quality = '-f'
     elif quality == 1:
@@ -737,12 +733,12 @@ for format in [mp3(), ogg(), mpc(), ape(), aac(), ac3(), wv(), wav(), flac()]:
   FORMATS[format.__class__.__name__.lower()] = format
 
 def recheck():
-  """ Recheck all formats """
+  """Recheck all formats"""
   for format in FORMATS.values():
     format.check()
 
 def getFileType(path):
-  """ Return the file type based on extension """
+  """Return the file type based on extension"""
   fileExtension = path.split('.')[-1].lower()
   for format in FORMATS.values():
     for extension in format.extensions:
@@ -752,7 +748,7 @@ def getFileType(path):
   return False
 
 def decodable(path):
-  """ Checks if a given file is currently decodable """
+  """Checks if a given file is currently decodable"""
   fileType = getFileType(path)
   if fileType == False:
     # unknown filetype!

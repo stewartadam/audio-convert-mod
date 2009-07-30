@@ -39,8 +39,13 @@ for key in formats.FORMATS.keys():
   infile = formats.getNewExt(format.extensions[0], outfile)
   if key.lower() == 'wav':
     continue
-  if not format.get()[0] or not os.path.exists(infile): # can't encode
+  if not format.get()[1]: # missing binaries
     print _('%(a)i/%(b)i: Binaries for decoding from %(c)s not present - skipping') % {'a': current, 'b': total, 'c': key}
+    current += 1
+    continue
+  elif not os.path.exists(infile): # can't encode, decode test failed
+    print _('%(a)i/%(b)i: File to decode for format %(c)s was not found.') % {'a': current, 'b': total, 'c': key}
+    print _('This is probably because the encode test has failed.')
     current += 1
     continue
   try:
