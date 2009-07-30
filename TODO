@@ -3,3 +3,6 @@
 - Pause conversion, don't make errors stop the conversion
 - If decodeonly (Converting to WAV) is set, we don't append .converted properly
 - Fix Lame slowness with time.sleep(0.01) and CPU usage with awk
+- Use RunFuncAsThread for threading
+- Fix the FIXMEs before releasing
+- Fix log clearing when 2+ acm instances are run at once

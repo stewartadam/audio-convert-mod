@@ -28,7 +28,6 @@ import exceptions
 import os
 import re
 import sys
-import traceback
 import unicodedata
 from threading import Thread, Event
 
@@ -60,35 +59,16 @@ def CheckPermsWrite(path):
   if not os.path.exists(path):
     path = os.path.dirname(path)
   return os.access(path, os.W_OK)
-
-class ClassAsThread(Thread):
-  """ Run a class as a new thread. """
-  def __init__(self, classtorun, args):
-    Thread.__init__(self)
-    self.__args = args
-    self.classtorun = classtorun
-
-  def run(self):
-    try:
-      retval = self.classtorun(*self.__args)
-      return retval
-    except exceptions.SystemExit:
-      sys.exit(0)
-    except: # catch other exception and print it
-      (etype, value, tb) = sys.exc_info()
-      print _('An error occurred while running a subprocess!')
-      debug(''.join(traceback.format_exception(etype, value, tb)))
-      self.exception = etype(evalue)
-      sys.exit(1)
   
 class FuncAsThread(Thread):
-  """ Run a function as a new thread. """
-  def __init__(self, functorun, args, raiseOnException=False):
+  """Run a function as a new thread."""
+  def __init__(self, functorun, args):
     Thread.__init__(self)
     self.__args = args
-    self.__raiseOnException = raiseOnException
     self.__functorun = functorun
     self.retval = None
+    self.traceback = None
+    self.exception = None
     
   def run(self):
     try:
@@ -97,30 +77,20 @@ class FuncAsThread(Thread):
     except exceptions.SystemExit:
       # cancelled
       self.retval = -2
-    except: # catch other exception and print it
-      # NOTE: Thread dies as soon as it gets the exception, so in the case of 
-      # __raiseOnException, retval will be None. Solution is to use
-      # `while thread.retval == None` rather than isAlive().
-      if self.__raiseOnException:
-        self.retval = sys.exc_info()[0], sys.exc_info()[1]
-      else:
-        (etype, value, tb) = sys.exc_info()
-        print _('An error occurred while running a subprocess!')
-        debug(''.join(traceback.format_exception(etype, value, tb)))
-        self.exception = etype(evalue)
-        self.retval = -1
-    finally:
-      return self.retval
+    except: # catch all other (non-request-for-cancel) exceptions
+      # NOTE: Thread dies as soon as it gets the exception, so retval will be
+      # None. Solution is to use "while thread.retval == None" rather than
+      # "isAlive()" while checking for a return value.
+      import traceback
+      (etype, value, tb) = sys.exc_info()
+      self.traceback = ''.join(traceback.format_exception(etype, value, tb))
+      self.exception = etype(value)
+      self.retval = -1
+    return self.retval
 
-def runFuncAsThread(functorun, raiseOnException, *kargs):
-  """ Runs a function as a new thread """
-  thread = FuncAsThread(functorun, kargs, raiseOnException=raiseOnException)
-  thread.start()
-  return thread
-
-def runClassAsThread(classtorun, *kargs):
-  """ Runs a function as a new thread """
-  thread = ClassAsThread(classtorun, kargs)
+def runFuncAsThread(functorun, *kargs):
+  """Runs a function as a new thread"""
+  thread = FuncAsThread(functorun, kargs)
   thread.start()
   return thread
 
