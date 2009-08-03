@@ -209,6 +209,10 @@ class acmApp(interface.Controller):
   def __init__(self, verbose, paths):
     """ Initialize a new instance. """
     interface.Controller.__init__(self, '%s/audio-convert-mod.glade' % INSTALL_DIR, 'main')
+    # Setup configuration directory
+    config.initConfigDir()
+    # Load preferences
+    prefs = config.PreferencesConf(create=True)
     # clear log for new session
     logfh = open(LOGLOC, 'w')
     logfh.write('')
@@ -351,8 +355,6 @@ class acmApp(interface.Controller):
     self.prepareForNewConversion()
     # /Set defaults
     
-    config.initConfigDir()
-    prefs = config.PreferencesConf(create=True)
     self._setupTrayIcon()
     if int(prefs.get('Preferences', 'ShowTrayIcon')) == 1:
       self.trayicon.set_visible(True)

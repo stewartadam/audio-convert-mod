@@ -40,6 +40,8 @@ from audio_convert_mod.i18n import _
 from audio_convert_mod.const import *
 
 import mutagen
+# Import ID3 even though it is unused to fix an import bug on OS X 10.5
+from mutagen.id3 import ID3
 from mutagen.easyid3 import EasyID3
 from mutagen.mp3 import MP3
 from mutagen.flac import FLAC
