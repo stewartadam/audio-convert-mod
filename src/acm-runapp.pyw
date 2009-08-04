@@ -553,6 +553,11 @@ class acmApp(interface.Controller):
     model.append(convert(formats.FORMATS['ac3'], 'a52dec', 'ffmpeg', _('N/A')))
     model.append(convert(formats.FORMATS['flac'], 'flac', 'flac', 'mutagen'))
     model.append(convert(formats.FORMATS['wv'], 'wavunpak', 'wavpack', 'mutagen'))
+    if which('ffmpeg'):
+      icon = gtk.STOCK_YES
+    else:
+      icon = gtk.STOCK_NO
+    model.append([_('(Resampling)'), icon, 'ffmpeg', icon, 'ffmpeg', gtk.STOCK_YES, _('N/A')])
 
 
   ###
@@ -828,7 +833,7 @@ class acmApp(interface.Controller):
   ## MAIN ##
 
   def on_mainBackButton_clicked(self, widget):
-    """ Advance to previous page """
+    """ Back to previous page """
     currPage = self.ui.mainControlNotebook.get_current_page()
     if self.trayicon.get_blinking():
       self.trayicon.set_blinking(False)
@@ -837,9 +842,11 @@ class acmApp(interface.Controller):
       # if we hit back on second page
       self.ui.mainBackButton.set_sensitive(False)
       self.ui.main2SaveDefaultsButton.hide()
-    elif currPage == 2:
-      # if we hit back on third page
+    elif currPage == 3:
+      # if we hit back on conversion page
       self.ui.main2SaveDefaultsButton.show()
+      if not self.ui.main2advancedSettingsCheck.get_active(): # skip extra page
+        self.ui.mainControlNotebook.set_current_page(self.ui.mainControlNotebook.get_current_page() - 1)
     self.ui.mainNextButton.set_sensitive(True)
 
   def on_mainNextButton_clicked(self, widget):
@@ -852,7 +859,8 @@ class acmApp(interface.Controller):
       model = self.ui.main1FilesTreeview.get_model()
       array = audio_convert_mod.liststoreIntoArray(model)
       if array == []:
-        rat.hig.error('Invalid Input', 'Please select at least one file to convert.', title=_('Invalid input') )
+        self.showError(self.ui.main, _("At least one file is required for a conversion"),
+          _("Please select at least one file to convert."))
         return
       else: # retrieve preferences
         prefs = config.PreferencesConf()
@@ -864,6 +872,7 @@ class acmApp(interface.Controller):
         successfulConversion = prefs.get('Defaults', 'SuccessfulConversion')
         successfulConversionDest = prefs.get('Defaults', 'SuccessfulConversionDest')
         outputFolder = prefs.get('Defaults', 'OutputFolder')
+        resample = prefs.get('Defaults', 'Resample')
         model = self.ui.main2FormatCombobox.get_model()
         iter = model.get_iter_first()
         format = formats.FORMATS[formatName.lower()]
@@ -888,6 +897,11 @@ class acmApp(interface.Controller):
         self.ui.__getattr__('main2ExistsRadio%s' % whenExists).set_active(True)
         self.ui.__getattr__('main2MetatagRadio%s' % metadata).set_active(True)
         self.ui.__getattr__('main2UponSuccessRadio%s' % successfulConversion).set_active(True)
+        if resample == '-1':
+          self.ui.main2ResampleCheck.set_active(False)
+        else:
+          self.ui.main2ResampleCheck.set_active(True)
+          self.ui.main2ResampleCombo.set_active(int(resample))
         self.ui.main2RemoveDiacriticsCheck.set_active(prefs.get('Defaults', 'RemoveDiacritics') == '1')
         if outputFolder.lower() == 'off':
           self.ui.main2OutputFolderRadio1.set_active(True)
@@ -899,13 +913,18 @@ class acmApp(interface.Controller):
       # either way, we need to show button...
       self.ui.mainBackButton.set_sensitive(True)
       self.ui.main2SaveDefaultsButton.show()
-    elif currPage == 2:
+    elif currPage == 1 and not self.ui.main2advancedSettingsCheck.get_active():
+      self.ui.mainControlNotebook.set_current_page(currPage + 1)
+    elif currPage == 3:
       # if we hit next on conversion page
       self.ui.mainNextButton.set_sensitive(False)
       self.ui.mainBackButton.set_sensitive(False)
-    self.ui.mainControlNotebook.set_current_page(currPage + 1)
-    if currPage == 1: # this comes on it's own because it needs to happen _after_ page change
-      # if we hit next on second page
+    # Don't use currPage below otherwise the if check for not advanced settings won't work
+    self.ui.mainControlNotebook.set_current_page(self.ui.mainControlNotebook.get_current_page() + 1)
+    # this comes on it's own because it needs to happen _after_ page change
+    if (currPage == 1 and not self.ui.main2advancedSettingsCheck.get_active()) \
+    or (currPage == 2 and self.ui.main2advancedSettingsCheck.get_active()):
+      # if we hit next to start the conversion
       self.ui.main2SaveDefaultsButton.hide()
       self.ui.mainNextButton.set_sensitive(False)
       self.ui.mainBackButton.set_sensitive(False)
@@ -924,8 +943,17 @@ class acmApp(interface.Controller):
                        _('An error occurred while converting files'),
                        _('An unexpected error occurred while converting files.\n' + \
                          'The current file may left in an incomplete state.'),
-                       details=traceback
-                      )
+                       details=traceback)
+        self.ui.mainNextButton.set_sensitive(True)
+        self.ui.mainBackButton.set_sensitive(True)
+
+  def on_main2ResampleCheck_toggled(self, widget):
+    if self.ui.main2ResampleCheck.get_active():
+      self.ui.main2ResampleCombo.set_sensitive(True) # 44100 Hz
+      self.ui.main2ResampleCombo.set_active(4)
+    else:
+      self.ui.main2ResampleCombo.set_sensitive(False)
+      self.ui.main2ResampleCombo.set_active(-1)
 
   def on_main2SaveDefaultsButton_clicked(self, widget):
     """ Save preferences """
@@ -963,6 +991,10 @@ class acmApp(interface.Controller):
       prefs.set('Defaults', 'OutputFolder', 'Off')
     elif self.ui.main2OutputFolderRadio2.get_active():
       prefs.set('Defaults', 'OutputFolder', self.ui.main2OutputFolderFilechooser.get_current_folder())
+    if not self.ui.main2ResampleCheck.get_active():
+      prefs.set('Defaults', 'Resample', '-1')
+    else:
+      prefs.set('Defaults', 'Resample', self.ui.main2ResampleCombo.get_active())
 
   def on_main1AddButton_clicked(self, widget):
     """ Add file(s) """
@@ -1055,7 +1087,6 @@ class acmApp(interface.Controller):
 
   def startConversion(self):
     """ Runs the conversion """
-
     def callback(model, path, iter, user_data):
       """ Append value to user_data """
       files = user_data[0]
@@ -1199,7 +1230,7 @@ class acmApp(interface.Controller):
         self.logger.logmsg("DEBUG", _("Decoding file"))
         self.setStatus(_('Decoding'))
         if self.decodeonly:
-          if self.ui.main2ExistsRadio3.get_active(): # wav exists, skips file selected...
+          if self.ui.main2ExistsRadio3.get_active(): # wav exists, skip file selected...
             currFile = nextFile(currFile)
             continue
           wavfile = formats.getNewExt('wav', i)
@@ -1284,6 +1315,24 @@ class acmApp(interface.Controller):
             break
           else: # we should NEVER be here, but just incase.
             newname += '.converted'
+        # Resample audio
+        if self.ui.main2ResampleCheck.get_active():
+          resampleHz = self.ui.main2ResampleCombo.get_active_text()[:-3]
+          self.setStatus(_('Resampling'))
+          self.logger.logmsg("DEBUG", _("Resampling WAV file %s") % wavfile)
+          sub, command = formats.resample(escapeSingleQuote(wavfile), resampleHz)
+          self.logger.logmsg("DEBUG", _("Executing command: %s") % command)
+          self.fraction = -1
+          progressBar.startPulse()
+          while sub.poll() == None:
+            while gtk.events_pending():
+              gtk.main_iteration()
+            time.sleep(0.01)
+          progressBar.stopPulse()
+          tmpfile = os.path.splitext(wavfile)
+          tmpfile = '%s.tmp%s' % tmpfile
+          # Move resampled wav over original
+          os.rename(tmpfile, wavfile)
         if not self.decodeonly:
           if self.encodeonly:
             wavfile = i

@@ -220,6 +220,7 @@ class PreferencesConf(ConfigFile):
       if oldVersion == '3.45.3' or fromHereUp == True:
         fromHereUp = True
       if oldVersion == '3.45.4' or fromHereUp == True:
+        fromHereUp = True
         # Case sensitivity
         for option in ['Version', 'ShowTrayIcon', 'BlinkTrayIcon', 'PauseOnErrors']:
           self.set('Preferences', option, self.get('Preferences', option.lower()))
@@ -235,5 +236,8 @@ class PreferencesConf(ConfigFile):
         # add temp dir option
         import tempfile
         self.set('Defaults', 'TemporaryDirectory', tempfile.gettempdir())
+      if oldVersion == '3.45.5' or fromHereUp == True:
+        fromHereUp = True
+        self.set('Defaults', 'Resample', -1)
     return self.set('Preferences', 'Version', audio_convert_mod.__version__)
 

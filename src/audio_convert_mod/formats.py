@@ -497,7 +497,7 @@ class aac:
   def getTags(self, filename):
     """Retrieves the metadata from filename"""
     audiotags = MP4(filename)
-    # Map our the iTunes MP4 atom names to our regular tag data.
+    # Map the iTunes MP4 atom names to our regular tag data.
     tags = []
     for item in ["\xa9nam", "\xa9ART", "\xa9alb", "\xa9day", "trkn", "\xa9gen", "\xa9cmt"]:
       if not audiotags.has_key(item):
@@ -507,6 +507,13 @@ class aac:
           tags.append(str(audiotags[item][0]))
         else: # strings
           tags.append(str(audiotags[item]))
+        if item == "\xa9day":
+          # Do not include month, day, timezone, etc in year tag
+          tags[-1] = tags[-1].split('-')[0]
+        elif item == "trkn":
+          # Get the first item (track number) from the tuple's string representation 
+          tags[-1] = tags[-1].split(',')[0][1:]
+          
     return tags
     
   def setTags(self, filename, tags):
@@ -756,4 +763,11 @@ def decodable(path):
     # unknown filetype!
     return False
   return fileType.get()[1]
+
+def resample(filename, samplerate):
+  tmpfile = os.path.splitext(filename)
+  tmpfile = '%s.tmp%s' % tmpfile
+  command = "echo 0;ffmpeg -i '%(a)s' -ar %(b)s -y '%(c)s' 2>&1 | awk -vRS='\10\10\10\10\10\10' '(NR>1){gsub(/%%/,\" \");if($1 != \"\") print $1;fflush();}'" % {'a': filename, 'b': samplerate, 'c': tmpfile}
+  sub = subprocess.Popen(command, shell=True, env=environ, stderr=subprocess.PIPE, stdout=subprocess.PIPE, stdin=subprocess.PIPE)
+  return sub, command
 
