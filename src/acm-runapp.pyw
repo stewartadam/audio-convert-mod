@@ -1225,9 +1225,9 @@ class acmApp(interface.Controller):
             currFile = nextFile(currFile)
             continue
           wavfile = formats.getNewExt('wav', i)
-          # FIXME FIXME FIXME
-          #outputFolder = self.ui.main2OutputFolderFilechooser.get_current_folder()
-          #newname = os.path.join(outputFolder, os.path.split(formats.getNewExt(extension.lower(), i))[1])
+          if self.ui.main2OutputFolderRadio2.get_active():
+            outputFolder = self.ui.main2OutputFolderFilechooser.get_current_folder()
+            wavfile = os.path.join(outputFolder, os.path.basename(wavfile))
           while os.path.exists(wavfile):
             if self.ui.main2ExistsRadio1.get_active(): # append .converted
               wavfile += '.converted'
