@@ -1290,7 +1290,7 @@ class acmApp(interface.Controller):
         newname = formats.getNewExt(extension.lower(), i)
       if self.ui.main2RemoveDiacriticsCheck.get_active():
         newname = audio_convert_mod.remove_diacritics(newname)
-      if not self.ui.main2ExistsRadio3.get_active(): # otherwise, this skips encode
+      if os.path.exists(newname) and not self.ui.main2ExistsRadio3.get_active(): # otherwise, this skips encode
         while os.path.exists(newname):
           if self.ui.main2ExistsRadio1.get_active(): # append .converted
             newname += '.converted'

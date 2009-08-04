@@ -1,6 +1,8 @@
 || Version 3.46 changes ||
   * Mon Aug 3 2009 Stewart Adam <s.adam at diffingo.com>
     - Support audio resampling in advanced options
+    - Fix a problem where selecting "Skip file" in the options would result in
+      no files being encoded
 
   * Wed Jul 29 2009 Stewart Adam <s.adam at diffingo.com>
     - Redo autotools config files so that glib gettext is no longer required
