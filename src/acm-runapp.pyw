@@ -301,7 +301,7 @@ class acmApp(interface.Controller):
     col = gtk.TreeViewColumn(_('Format'), cell, text=0)
     col.set_resizable(False)
     col.set_sort_column_id(0)
-    col.set_min_width(50)
+    col.set_min_width(100)
     self.ui.featuresFeaturesTreeview.append_column(col)
     # Column: Decode
     pcell = gtk.CellRendererPixbuf()
@@ -458,21 +458,12 @@ class acmApp(interface.Controller):
       status: the gtk.StatusIcon
     """
     # use me for menu on left click
-    """def menu_pos(menu):
+    def menu_pos(menu):
       return gtk.status_icon_position_menu(menu, self.trayicon)
-    self.ui.TrayMenu1.popup(None, None, menu_pos, 0,
-                gtk.get_current_event_time())"""
+    self.ui.trayMenu.popup(None, None, menu_pos, 0, gtk.get_current_event_time())
     if self.trayicon.get_blinking():
       self.trayicon.set_blinking(False)
-      self.ui.main.hide()
-      self.ui.main.show()
-    else:
-      if self.ui.main.get_property('visible'):
-        self.ui.main.hide()
-        self.ui.show_conversion_window1.set_active(False)
-      else:
-        self.ui.main.show()
-        self.ui.show_conversion_window1.set_active(True)
+        
 
   def _Popup(self, status, button, time):
     """ Popup the menu at the right position """
