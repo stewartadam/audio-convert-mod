@@ -11,6 +11,7 @@ EXTRA_DIST = \
     intltool-merge.in \
     intltool-update.in \
     audio-convert-mod.spec.in \
+    audio-convert-mod.spec \
     AUTHORS \
     ChangeLog \
     COPYING \
@@ -38,10 +39,10 @@ clean-local:
 	rm -rf $(testsubdir)/*
 
 rpm: dist
-	@(rpmbuild -ta 	audio-convert-mod-$(PACKAGE_VERSION).tar.gz)
+	@(rpmbuild -ta 	audio-convert-mod-$(PACKAGE_VERSION).tar.bz2)
 
 srpm: dist
-	@(rpmbuild -ts audio-convert-mod-$(PACKAGE_VERSION).tar.gz)
+	@(rpmbuild -ts audio-convert-mod-$(PACKAGE_VERSION).tar.bz2)
 
 CVS_PKGVERSION=`echo $(PACKAGE_VERSION) | sed -e 's/\./_/g'`
 CVSTAG=$(PACKAGE_NAME)-$(CVS_PACKAGEVERSION)
