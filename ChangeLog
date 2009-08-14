@@ -1,4 +1,4 @@
-|| Version 3.46 changes ||
+|| Version 3.46.0 changes ||
   * Mon Aug 3 2009 Stewart Adam <s.adam at diffingo.com>
     - Support audio resampling in advanced options
     - Fix a problem where selecting "Skip file" in the options would result in
