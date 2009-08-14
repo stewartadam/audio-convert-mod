@@ -157,6 +157,7 @@ class acmApp(interface.Controller):
     errors = []
     for i in paths:
       fileType, path, filename = formats.getFileType(i), os.sep.join(i.split(os.sep)[:-1]), i.split(os.sep)[-1]
+      path = os.path.abspath(path)
       array, coord = audio_convert_mod.liststoreIndex(model, filename)
       if False == True: # coord != []:
         # a filename match was found, now compare paths
@@ -366,7 +367,7 @@ class acmApp(interface.Controller):
       fileList = []
       for path in paths:
         if os.path.exists(path):
-          if os.path.isdir(path): # a dir
+          if os.path.isdir(path):
             files = os.listdir(path)
             files.sort()
             for filename in files:
@@ -1220,8 +1221,10 @@ class acmApp(interface.Controller):
       if not self.encodeonly:
         self.logger.logmsg("DEBUG", _("Decoding file"))
         self.setStatus(_('Decoding'))
+        wavfile = os.path.join(tempdir, 'acm-%s' % os.path.split(formats.getNewExt('wav', i))[1])
         if self.decodeonly:
-          if self.ui.main2ExistsRadio3.get_active(): # wav exists, skip file selected...
+          if os.path.exists(wavfile) and self.ui.main2ExistsRadio3.get_active(): # wav exists, skip file selected...
+            self.logger.logmsg("DEBUG", _("Output file '%s' exists, skipping...") % wavfile)
             currFile = nextFile(currFile)
             continue
           wavfile = formats.getNewExt('wav', i)
@@ -1233,15 +1236,13 @@ class acmApp(interface.Controller):
               wavfile += '.converted'
             elif self.ui.main2ExistsRadio2.get_active(): # overwrite
               try:
-                self.logger.logmsg("DEBUG", _("Removing existing file %s") % newname)
+                self.logger.logmsg("DEBUG", _("Removing existing file %s") % wavfile)
                 os.remove(wavfile)
               except Exception, errormsg:
                 self.logger.logmsg("WARNING", _("Could not remove existing file: %s") % errormsg)
               break
             else: # just incase
               wavfile += '.converted'
-        else:
-          wavfile = os.path.join(tempdir, 'acm-%s' % os.path.split(formats.getNewExt('wav', i))[1])
         sub, command = inputFormatObject.decode(escapeSingleQuote(i), escapeSingleQuote(wavfile))
         self.logger.logmsg("DEBUG", _("Executing command: %s") % command)
         self.processId = sub.pid
@@ -1290,13 +1291,11 @@ class acmApp(interface.Controller):
         newname = formats.getNewExt(extension.lower(), i)
       if self.ui.main2RemoveDiacriticsCheck.get_active():
         newname = audio_convert_mod.remove_diacritics(newname)
-      if os.path.exists(newname) and not self.ui.main2ExistsRadio3.get_active(): # otherwise, this skips encode
+      if not (os.path.exists(newname) and self.ui.main2ExistsRadio3.get_active()):
         while os.path.exists(newname):
           if self.ui.main2ExistsRadio1.get_active(): # append .converted
-            newname += '.converted'
-            if outputFormat == 'MPC' and not newname.endswith('.mpc'):
-              # a stupid hack because mpc can't encode to something that doesn't end in .mpc
-              newname += '.mpc'
+            name, ext = os.path.splitext(newname)
+            newname = '%s.%s%s' % (name, _('converted'), ext)
           elif self.ui.main2ExistsRadio2.get_active() and os.path.exists(newname) and outputFormat != 'WAV': #overwrite
             try:
               self.logger.logmsg("DEBUG", _("Removing existing file %s") % newname)
@@ -1362,7 +1361,6 @@ class acmApp(interface.Controller):
         self.setStatus(_('Setting tags/metadata'))
         if tags and outputFormatObject.get()[2]: # if tags are supported:
           outputFormatObject.setTags(newname, tags)
-        
         
         if sub.poll() == 0:
           if os.path.exists(i):
