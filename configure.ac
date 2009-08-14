@@ -1,4 +1,4 @@
-AC_INIT([audio-convert-mod], 3.45.6)
+AC_INIT([audio-convert-mod], 3.46.0)
 AM_INIT_AUTOMAKE([dist-bzip2 no-dist-gzip])
 AC_CONFIG_SRCDIR(src/audio_convert_mod/__init__.py.in)
 

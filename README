@@ -1,3 +1,13 @@
+-- DEPENDENCIES --
+audio-convert-mod requires the following software to be installed:
+  * python >= 2.4
+  * PyGTK >= 2.10 with Glade support
+  * Mutagen (often called python-mutagen)
+
+Once audio-convert-mod is running, you may select "File > Show Format Conversion
+Capabilities" to see which additional tools are required to convert audio into
+your preferred format(s).
+
 -- BUILDING --
   $ ./configure --prefix=/usr
   $ make
@@ -15,6 +25,6 @@ If you would like to specify files to convert, add each an argument:
 -- HELP --
 If you think you've found a bug in audio-convert-mod, please send run the
 program with verbose output enabled:
-  $ audio-convert-mod -v
+  $ audio-convert-mod --verbose
   
 Then report a bug with the verbose messages _attached_, not posted please.

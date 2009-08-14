@@ -12,17 +12,19 @@ BuildRoot:         %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n
 BuildRequires:     desktop-file-utils
 BuildRequires:     intltool
 BuildRequires:     python-devel >= 2.4
+# For tag support in testbench
+BuildRequires:     python-mutagen
+
 Requires:          python >= 2.4
 Requires:          pygtk2, pygtk2-libglade
 Requires:          notify-python
-
 # FOSS encoders, decoders, taggers
 Requires:          flac
 Requires:          id3lib
 Requires:          libmp4v2
 Requires:          vorbis-tools
 Requires:          wavpack
-
+Requires:          python-mutagen
 
 %description
 audio-convert-mod is a simple audio file converter supporting various formats
@@ -68,11 +70,12 @@ rm -rf $RPM_BUILD_ROOT
 * Fri Aug 14 2009 Stewart Adam <s.adam at diffingo.com> 3.46.0a
 - Update to 3.46.0a (see ChangeLog for details on version changes)
 
-* Wed Jul 29 2009 Stewart Adam <s.adamat diffingo.com> 3.46-1
-- Update to 3.46 (see ChangeLog for details on version changes)
+* Tue Aug 4 2009 Stewart Adam <s.adam at diffingo.com> 3.46.0-1
+- Update to 3.46.0 (see ChangeLog for details on version changes)
 - Update Source0: and URL: URLs
+- Add python-mutagen (build) requirements
 
-* Mon Jan 12 2009 Stewart Adam <s.adamat diffingo.com> 3.45.5-1
+* Mon Jan 12 2009 Stewart Adam <s.adam at diffingo.com> 3.45.5-1
 - Update to 3.45.5 (see ChangeLog for details on version changes)
 - Add BR on autoconf
 - Require libmp4v2 for AAC tagging, id3lib for MP3 tagging and notify-python
