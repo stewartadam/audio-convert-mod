@@ -1269,6 +1269,8 @@ class acmApp(interface.Controller):
             #time.sleep(0.01)
         if sub.poll() != 0 and sub.poll() != -9:
           badExitValue(sub)
+      else: # if we are only encoding, the source file is a WAV
+        wavfile = i
       if self.processId == -1:
         # don't continue onto next file if we hit cancel
         return

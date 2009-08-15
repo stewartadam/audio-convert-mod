@@ -1,6 +1,7 @@
 || Version 3.46.1 changes ||
   * Sat Aug 15 2009 Stewart Adam <s.adam at diffingo.com>
     - Add 'Resample' (= -1) to defaults when creating a new config
+    - Fix a bug where encoding WAV files failed if resampling was enabled
 
 || Version 3.46.0a changes ||
   * Fri Aug 14 2009 Stewart Adam <s.adam at diffingo.com>
