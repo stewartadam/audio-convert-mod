@@ -172,7 +172,7 @@ class PreferencesConf(ConfigFile):
     for pair in [['Format', 'WAV'], ['Quality', 0], ['Extension', 0],
                 ['FileExists', 1], ['Metadata', 1], ['SuccessfulConversion', 1],
                 ['SuccessfulConversionDest', USERHOME], ['OutputFolder', 'Off'],
-                ['RemoveDiacritics', 0]]:
+                ['RemoveDiacritics', 0], ['Resample', -1]]:
       self.set('Defaults', pair[0], pair[1])
     self.set('Preferences', 'Version', audio_convert_mod.__version__)
 
@@ -239,5 +239,8 @@ class PreferencesConf(ConfigFile):
       if oldVersion == '3.45.5' or fromHereUp == True:
         fromHereUp = True
         self.set('Defaults', 'Resample', -1)
+      if oldVersion in ['3.46.0', '3.46.0a'] or fromHereUp == True:
+        fromHereUp = True
+        
     return self.set('Preferences', 'Version', audio_convert_mod.__version__)
 
