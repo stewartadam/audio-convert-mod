@@ -412,10 +412,9 @@ class acmApp(interface.Controller):
   
   def _setupTrayIcon(self):
     """ Sets up the tray icon """
-    pix = self.ui.main.render_icon(gtk.STOCK_CONVERT, gtk.ICON_SIZE_MENU)
     #pix = gtk.gdk.pixbuf_new_from_file("/usr/share/pixmaps/audio-convert-mod.svg")
-    self.trayicon = gtk.status_icon_new_from_pixbuf(pix)
-    self.trayicon.set_from_pixbuf(pix)
+    #self.trayicon = gtk.status_icon_new_from_pixbuf(pix)
+    self.trayicon = gtk.status_icon_new_from_stock(gtk.STOCK_CONVERT)
     self.trayicon.connect("popup_menu", self._Popup)
     self.trayicon.connect("activate", self._clicked)
     self.setStatus(_('Idle'))
@@ -455,22 +454,23 @@ class acmApp(interface.Controller):
     self.ui.main3StatusLabel.set_text(status)
 
   def _clicked(self, status):
-    """ Tray icon is clicked.
-      status: the gtk.StatusIcon
-    """
-    # use me for menu on left click
-    def menu_pos(menu):
-      return gtk.status_icon_position_menu(menu, self.trayicon)
-    self.ui.trayMenu.popup(None, None, menu_pos, 0, gtk.get_current_event_time())
+    """Tray icon is clicked."""
     if self.trayicon.get_blinking():
       self.trayicon.set_blinking(False)
-        
+      # Grabs the GDKWindow and raises it
+      self.ui.main.window.show()
+    else:
+      # use me for menu on left click
+      def menu_pos(menu):
+        return gtk.status_icon_position_menu(menu, self.trayicon)
+      self.ui.trayMenu.popup(None, None, menu_pos, 0, gtk.get_current_event_time())
 
   def _Popup(self, status, button, time):
     """ Popup the menu at the right position """
     def menu_pos(menu):
+      # returns width, height, orientation
       return gtk.status_icon_position_menu(menu, self.trayicon)
-    if MSWINDOWS:
+    if MSWINDOWS or DARWIN:
       self.ui.trayMenu.popup(None, None, None, button, time)
     else:
       self.ui.trayMenu.popup(None, None, menu_pos, button, time)

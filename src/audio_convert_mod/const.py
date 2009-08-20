@@ -25,6 +25,8 @@ import getpass
 import ConfigParser
 
 MSWINDOWS = sys.platform.startswith("win")
+LINUX = sys.platform.startswith('linux')
+DARWIN = sys.platform == 'darwin'
 if MSWINDOWS:
   UID = 1
   ROOTDRIVE = os.path.splitdrive(sys.argv[0])[0]
