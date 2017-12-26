@@ -39,24 +39,24 @@ Capabilities* to see which additional tools are required to convert audio into
 your preferred format(s). 
 
 ### Supported decoders
-`lame` for MP3
-`vorbis-tools` for OGG
-`musepack-tools` for Musepack (MPC)
-`flac` for FLAC
-`mac` for Monkey's Audio (APE)
-`faac` for AAC / M4A / MP4
-`wavpack` for Wavpack (WV)
-`a52dec` for Dolby Digital (AC3)
+* `lame` for MP3
+* `vorbis-tools` for OGG
+* `musepack-tools` for Musepack (MPC)
+* `flac` for FLAC
+* `mac` for Monkey's Audio (APE)
+* `faac` for AAC / M4A / MP4
+* `wavpack` for Wavpack (WV)
+* `a52dec` for Dolby Digital (AC3)
 
 ### Supported encoders
-`lame` for MP3
-`vorbis-tools` for OGG
-`musepack-tools` for Musepack (MPC)
-`flac` for FLAC
-`mac` for Monkey's Audio (APE)
-`faad` for AAC / M4A / MP4
-`wavpack` for Wavpack (WV)
-`ffmpeg` for Dolby Digital (AC3)
+* `lame` for MP3
+* `vorbis-tools` for OGG
+* `musepack-tools` for Musepack (MPC)
+* `flac` for FLAC
+* `mac` for Monkey's Audio (APE)
+* `faad` for AAC / M4A / MP4
+* `wavpack` for Wavpack (WV)
+* `ffmpeg` for Dolby Digital (AC3)
 
 ## Building from source
 ```
@@ -71,10 +71,13 @@ audio-convert-mod installs a menu entry, or simply run `audio-convert-mod` from
 the CLI.
 
 If you would like to specify files to convert, add each as an argument:
-```audio-convert-mod /path/to/File1.mp3 /path/to/File2.ogg [...]
+```
+audio-convert-mod /path/to/File1.mp3 /path/to/File2.ogg [...]
 ```
 
 ## Debugging
 If you think you've found a bug in audio-convert-mod, run the application with
 verbose output enabled:
-  $ audio-convert-mod --verbose
+```
+audio-convert-mod --verbose
+```
