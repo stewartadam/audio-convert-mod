@@ -3,8 +3,8 @@ audio-convert-mod
 A simple audio file converter that supporting many formats. Convert music files
 between WAV, MP3, AAC, Ogg and more.
 
-**Note: development of audio-convert-mod stopped in 2009. You may have better
-luck with similar actively maintained software such as [SoundConverter](http://soundconverter.org/).**
+***Note: development of audio-convert-mod stopped in 2009.** You may have better
+luck with similar actively maintained software such as [SoundConverter](http://soundconverter.org/).*
 
 ## Features
 * Simple interface with progress indicators (current file + total conversion
@@ -32,7 +32,6 @@ audio-convert-mod expects the following software to be available:
 
 Developers and/or users wanting to build from source will also require `autotools`, `intltool` and `gettext`.
 
-
 audio-convert-mod does not contain any media transcoding tools itself. Once
 audio-convert-mod is running, you may select *File > Show Format Conversion
 Capabilities* to see which additional tools are required to convert audio into
@@ -59,12 +58,14 @@ your preferred format(s).
 * `ffmpeg` for Dolby Digital (AC3)
 
 ## Building from source
+If you are **not** using a release download, you will need to generate the `configure` script by running `./autogen.sh` before running the steps below.
+
+Configure and build audio-convert-mod:
 ```
-./autogen.sh
 ./configure --prefix=/usr
 make
 ```
-Then run `make install` as root (or use sudo).
+Then run `make install` as root (or use sudo) to permanently install it on your system.
 
 ## Usage
 audio-convert-mod installs a menu entry, or simply run `audio-convert-mod` from
